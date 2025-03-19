@@ -1,41 +1,59 @@
-import express, { Request, Response, NextFunction } from 'express';
+import express, { Express } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
-import { DocumentsController } from './controllers/documents-controller';
-import { UsersController } from './controllers/users-controller';
-import { authenticateToken } from './auth-middleware';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import cookieParser from 'cookie-parser';
+import session from 'express-session';
+import csrf from 'csurf';
+import router from './routes';
 
-dotenv.config();
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
+    email: string;
+  }
+}
 
-const app = express();
+const app: Express = express();
 
-// Middleware
-app.use(express.json());
+// Security middleware configuration
+app.use(helmet());
+app.use(cookieParser());
+
+// Rate limiting configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again later'
+});
+app.use(limiter);
+
+// CORS configuration
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS?.split(',') || ['http://localhost:3000'],
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : 'http://localhost:3000',
   credentials: true,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-ID', 'CSRF-Token']
 }));
 
-// Health check endpoint
-app.get('/health', (_req: Request, res: Response) => {
-  res.json({ status: 'healthy' });
-});
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET!,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000
+  }
+}));
 
-// Protected routes
-app.use('/api', authenticateToken);
+// CSRF protection
+app.use(csrf({ cookie: true }));
 
-// Document routes
-app.post('/api/documents/access', (req: Request, res: Response) => DocumentsController.recordAccess(req, res));
-app.get('/api/documents', (req: Request, res: Response) => DocumentsController.getUserDocuments(req, res));
-
-// User routes
-app.get('/api/user/status', (req: Request, res: Response) => UsersController.getUserStatus(req, res));
-app.post('/api/user/upgrade', (req: Request, res: Response) => UsersController.upgradeUser(req, res));
-
-// Error handling middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ error: 'Something went wrong!' });
-});
+// Routes
+app.use('/api', router);
 
 export default app; 
