@@ -1,7 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { DocumentController } from './controllers/document-controller';
+import { DocumentsController } from './controllers/documents-controller';
+import { UsersController } from './controllers/users-controller';
 import { authenticateToken } from './auth-middleware';
 
 dotenv.config();
@@ -24,9 +25,12 @@ app.get('/health', (_req: Request, res: Response) => {
 app.use('/api', authenticateToken);
 
 // Document routes
-app.post('/api/documents/access', (req: Request, res: Response) => DocumentController.recordAccess(req, res));
-app.get('/api/documents', (req: Request, res: Response) => DocumentController.getUserDocuments(req, res));
-app.get('/api/user/status', (req: Request, res: Response) => DocumentController.getUserStatus(req, res));
+app.post('/api/documents/access', (req: Request, res: Response) => DocumentsController.recordAccess(req, res));
+app.get('/api/documents', (req: Request, res: Response) => DocumentsController.getUserDocuments(req, res));
+
+// User routes
+app.get('/api/user/status', (req: Request, res: Response) => UsersController.getUserStatus(req, res));
+app.post('/api/user/upgrade', (req: Request, res: Response) => UsersController.upgradeUser(req, res));
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
