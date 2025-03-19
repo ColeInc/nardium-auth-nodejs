@@ -29,5 +29,20 @@ export class EncryptionService {
     };
   }
 
+  public decrypt(encryptedToken: EncryptedToken): string {
+    const decipher = crypto.createDecipheriv(
+      this.algorithm,
+      this.encryptionKey,
+      Buffer.from(encryptedToken.iv, 'hex')
+    );
+    
+    decipher.setAuthTag(Buffer.from(encryptedToken.authTag, 'hex'));
+    
+    let decrypted = decipher.update(encryptedToken.encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    
+    return decrypted;
+  }
+
   // ... rest of encryption methods
 } 

@@ -26,7 +26,12 @@ export interface EncryptedToken {
 export interface GoogleCallbackRequest extends Request {
   body: {
     code: string;
-  }
+  };
+  csrfToken(): string;
+  session: {
+    userId: string;
+    email: string;
+  };
 }
 
 export interface AuthenticatedRequest extends Request {
