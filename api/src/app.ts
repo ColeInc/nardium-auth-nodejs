@@ -7,6 +7,7 @@ import session from 'express-session';
 import csrf from 'csurf';
 import router from './routes';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
 declare module 'express-session' {
