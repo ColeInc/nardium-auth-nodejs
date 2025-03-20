@@ -1,5 +1,12 @@
 import { Request } from 'express';
 
+declare module 'express-session' {
+  interface SessionData {
+    userId: string;
+    email: string;
+  }
+}
+
 export interface GoogleTokens {
   access_token: string;
   refresh_token: string;
@@ -24,19 +31,11 @@ export interface EncryptedToken {
 }
 
 export interface GoogleCallbackRequest extends Request {
-  body: {
-    code: string;
+  query: {
+    code?: string | string[];
   };
   csrfToken(): string;
-  session: {
-    userId: string;
-    email: string;
-  };
 }
 
 export interface AuthenticatedRequest extends Request {
-  session: {
-    userId: string;
-    email: string;
-  }
 } 

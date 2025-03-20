@@ -2,7 +2,7 @@ import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import { googleConfig } from '../../config/auth/google';
 import axios from 'axios';
-import { EncryptionService } from '../../utils/encryption';
+import { EncryptedToken } from '../../types/auth';
 
 interface AuthResponse {
   access_token: string;
@@ -37,6 +37,11 @@ export class GoogleAuthService {
       googleConfig.clientSecret,
       googleConfig.redirectUri
     );
+    console.log('OAuth2 client initialized with:', {
+      clientId: googleConfig.clientId,
+      redirectUri: googleConfig.redirectUri,
+      scopes: googleConfig.scopes
+    });
     this.authClient = new OAuth2Client(googleConfig.clientId);
     this.encryptionService = encryptionService;
   }

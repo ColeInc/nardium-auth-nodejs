@@ -4,6 +4,9 @@
     "googleapis": "^146.0.0"
   },
   "devDependencies": {
-    "@types/axios": "^0.9.36"
+    "@types/axios": "^0.9.36",
+    "@types/cookie-parser": "^1.4.8",
+    "@types/csurf": "^1.11.5",
+    "@types/express-session": "^1.18.1"
   }
 }

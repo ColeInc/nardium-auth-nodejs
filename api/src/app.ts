@@ -6,6 +6,8 @@ import cookieParser from 'cookie-parser';
 import session from 'express-session';
 import csrf from 'csurf';
 import router from './routes';
+import dotenv from 'dotenv';
+dotenv.config();
 
 declare module 'express-session' {
   interface SessionData {
@@ -20,6 +22,10 @@ const app: Express = express();
 app.use(helmet());
 app.use(cookieParser());
 
+// Body parser middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // Rate limiting configuration
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -30,12 +36,10 @@ app.use(limiter);
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
-    : 'http://localhost:3000',
+  origin: process.env.CHROME_EXTENSION_URL,
   credentials: true,
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Client-ID', 'CSRF-Token']
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version']
 }));
 
 // Session configuration
@@ -55,5 +59,8 @@ app.use(csrf({ cookie: true }));
 
 // Routes
 app.use('/api', router);
+
+// Add startup logging
+console.log(`Server configured and ready to start`);
 
 export default app; 
