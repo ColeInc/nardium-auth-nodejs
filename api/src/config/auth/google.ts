@@ -1,14 +1,6 @@
 import dotenv from 'dotenv';
 
-// Force load environment variables at the start of this file
 dotenv.config();
-
-// Add debugging to see what's being loaded
-console.log('Environment variables check:', {
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI
-});
 
 if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_REDIRECT_URI) {
   throw new Error(
