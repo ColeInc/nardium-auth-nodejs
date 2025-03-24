@@ -72,14 +72,15 @@ export class GoogleAuthController {
 
       // Set JWT in HTTP-only cookie
       res.cookie('auth_token', jwtToken, this.jwtService.getCookieConfig());
+      console.log("successfully set auth_token cookie", jwtToken);
 
       console.log('Authentication process completed successfully');
       res.json({ 
         success: true,
         csrfToken: req.csrfToken(),
         user: {
-          id: user.id,
           email: user.email,
+          sub: userData.sub,
           subscription_tier: user.subscription_tier
         }
       });
@@ -89,55 +90,100 @@ export class GoogleAuthController {
     }
   };
 
-  public exchangeToken = async (req: any, res: Response): Promise<void> => {
+  public refreshAccessToken = async (req: any, res: Response): Promise<void> => {
     try {
-      console.log('Starting token exchange process');
-      const { token } = req.body;
+      console.log('Starting access token refresh process');
+      console.log('Request headers:', req.headers);
+      console.log('Request cookies:', req.cookies);
       
-      if (!token) {
-        console.log('Error: No token provided');
-        res.status(400).json({ error: 'Token is required' });
+      // Get user ID from JWT token (which was set in auth_token cookie)
+      const userId = req.user?.user_id;
+      console.log('User ID from request:', userId);
+      
+      if (!userId) {
+        console.log('Error: No user ID found in request');
+        res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
-      console.log('Verifying token and getting user info...');
-      const userData = await this.googleAuthService.verifyAndGetUserInfo(token);
+      console.log(`Fetching refresh token for user ${userId}`);
+      // Get the stored refresh token for this user
+      const refreshToken = await this.tokenService.getRefreshToken(userId);
+      console.log('Refresh token retrieved:', refreshToken ? 'Found' : 'Not found');
       
-      console.log('Getting user from Supabase...');
-      const user = await this.supabaseAuthService.getUserByEmail(userData.email);
-      
-      if (!user) {
-        console.log(`Error: No user found for email ${userData.email}`);
-        res.status(404).json({ error: 'User not found' });
+      if (!refreshToken) {
+        console.log(`Error: No refresh token found for user ${userId}`);
+        res.status(401).json({ error: 'No refresh token found' });
         return;
       }
 
-      // Create JWT token with user info
-      const jwtPayload = {
-        user_id: user.id,
-        email: user.email,
-        sessionId: req.sessionID,
-        subscription_tier: user.subscription_tier
-      };
-      const jwtToken = this.jwtService.createSessionToken(jwtPayload);
-
-      // Set JWT in HTTP-only cookie
-      res.cookie('auth_token', jwtToken, this.jwtService.getCookieConfig());
-
-      console.log('Token exchange completed successfully');
+      console.log('Requesting new access token from Google');
+      // Use the refresh token to get a new access token from Google
+      const newTokens = await this.googleAuthService.refreshAccessToken(refreshToken);
+      console.log('New tokens received:', newTokens ? 'Success' : 'Failed');
+      
+      console.log('Successfully obtained new access token');
       res.json({
         success: true,
-        user: {
-          id: user.id,
-          email: user.email,
-          subscription_tier: user.subscription_tier
-        }
+        access_token: newTokens.access_token,
+        expires_in: newTokens.expires_in
       });
+      
     } catch (error) {
-      console.error('Token exchange error:', error);
-      res.status(500).json({ error: 'Token exchange failed' });
+      console.error('Access token refresh error:', error);
+      res.status(500).json({ error: 'Failed to refresh access token' });
     }
   };
+
+  // public exchangeToken = async (req: any, res: Response): Promise<void> => {
+  //   try {
+  //     console.log('Starting token exchange process');
+  //     const { token } = req.body;
+      
+  //     if (!token) {
+  //       console.log('Error: No token provided');
+  //       res.status(400).json({ error: 'Token is required' });
+  //       return;
+  //     }
+
+  //     console.log('Verifying token and getting user info...');
+  //     const userData = await this.googleAuthService.verifyAndGetUserInfo(token);
+      
+  //     console.log('Getting user from Supabase...');
+  //     const user = await this.supabaseAuthService.getUserByEmail(userData.email);
+      
+  //     if (!user) {
+  //       console.log(`Error: No user found for email ${userData.email}`);
+  //       res.status(404).json({ error: 'User not found' });
+  //       return;
+  //     }
+
+  //     // Create JWT token with user info
+  //     const jwtPayload = {
+  //       user_id: user.id,
+  //       email: user.email,
+  //       sessionId: req.sessionID,
+  //       subscription_tier: user.subscription_tier
+  //     };
+  //     const jwtToken = this.jwtService.createSessionToken(jwtPayload);
+
+  //     // Set JWT in HTTP-only cookie
+  //     res.cookie('auth_token', jwtToken, this.jwtService.getCookieConfig());
+
+  //     console.log('Token exchange completed successfully');
+  //     res.json({
+  //       success: true,
+  //       user: {
+  //         id: user.id,
+  //         email: user.email,
+  //         subscription_tier: user.subscription_tier
+  //       }
+  //     });
+  //   } catch (error) {
+  //     console.error('Token exchange error:', error);
+  //     res.status(500).json({ error: 'Token exchange failed' });
+  //   }
+  // };
 
   public logout = async (req: any, res: Response): Promise<void> => {
     try {

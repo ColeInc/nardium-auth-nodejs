@@ -23,8 +23,10 @@ export class JWTService {
 
   public verifyToken(token: string): JWTPayload & { sessionId: string } {
     try {
+      console.log('Verifying JWT token:', token);
       return jwt.verify(token, this.JWT_SECRET) as JWTPayload & { sessionId: string };
     } catch (error) {
+      console.log('JWT verification failed. Token:', token);
       throw new Error('Invalid token');
     }
   }
@@ -54,8 +56,8 @@ export class JWTService {
   public getCookieConfig(isProd: boolean = process.env.NODE_ENV === 'production') {
     return {
       httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'strict' : 'lax',
+      secure: true,
+      sameSite: 'none' as const,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       path: '/'
     } as const;

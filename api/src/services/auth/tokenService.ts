@@ -15,5 +15,13 @@ export class TokenService {
     this.tokenStore.set(userId, encryptedToken);
   }
 
+  async getRefreshToken(userId: string): Promise<string | null> {
+    const encryptedToken = this.tokenStore.get(userId);
+    if (!encryptedToken) {
+      return null;
+    }
+    return this.encryptionService.decrypt(encryptedToken);
+  }
+
   // ... rest of the service methods
 } 

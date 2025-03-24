@@ -21,11 +21,12 @@ const app: Express = express();
 
 // Security middleware configuration
 app.use(helmet());
-app.use(cookieParser());
 
 // Body parser middleware
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// Cookie parser middleware
+app.use(cookieParser());
 
 // Rate limiting configuration
 const limiter = rateLimit({
@@ -39,8 +40,9 @@ app.use(limiter);
 app.use(cors({
   origin: process.env.CHROME_EXTENSION_URL,
   credentials: true,
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version', 'X-Client-ID', 'X-CSRF-Token'],
+  exposedHeaders: ['Set-Cookie', 'Date', 'ETag']
 }));
 
 // Session configuration

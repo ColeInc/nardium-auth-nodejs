@@ -12,12 +12,27 @@ declare global {
 
 const jwtService = new JWTService();
 
+/**
+ * API Authentication Middleware
+ * 
+ * This middleware handles authentication for protected API routes by:
+ * 1. Extracting the JWT token from the request cookies
+ * 2. Decrypting and validating the token using the JWT_SECRET from .env
+ * 3. If valid, attaches the user information to the request and allows it to proceed
+ * 4. If invalid or expired, rejects the request with appropriate error responses
+ * 
+ * The middleware also validates the client ID and refreshes tokens when needed.
+ */
 export const validateApiRequest = (
   req: Request,
   res: Response,
   next: NextFunction
 ): void => {
   try {
+    console.log('Validating API request...');
+    // Log incoming cookies for debugging
+    console.log('Incoming cookies:', req.cookies);
+    
     // Validate client ID
     const clientId = req.headers['x-client-id'];
     if (!clientId || clientId !== process.env.EXPECTED_CLIENT_ID) {
