@@ -4,17 +4,20 @@ import { TokenService } from '../../services/auth/tokenService';
 import { GoogleCallbackRequest } from '../../types/auth';
 import { EncryptionService } from '../../utils/encryption';
 import { SupabaseAuthService } from '../../services/auth/supabaseAuthService';
+import { JWTService } from '../../services/auth/jwtService';
 
 export class GoogleAuthController {
   private googleAuthService: GoogleAuthService;
   private tokenService: TokenService;
   private supabaseAuthService: SupabaseAuthService;
+  private jwtService: JWTService;
 
   constructor() {
     const encryptionService = new EncryptionService();
     this.googleAuthService = new GoogleAuthService(encryptionService);
     this.tokenService = new TokenService();
     this.supabaseAuthService = new SupabaseAuthService(encryptionService);
+    this.jwtService = new JWTService();
   }
 
   public authenticateUser = async (
@@ -58,9 +61,17 @@ export class GoogleAuthController {
       console.log('Storing refresh token...');
       await this.tokenService.storeRefreshToken(user.id, tokens.refresh_token);
 
-      console.log('Setting session data...');
-      req.session.userId = user.id;
-      req.session.email = user.email;
+      // Create JWT token with user info
+      const jwtPayload = {
+        user_id: user.id,
+        email: user.email,
+        sessionId: req.sessionID,
+        subscription_tier: user.subscription_tier
+      };
+      const jwtToken = this.jwtService.createSessionToken(jwtPayload);
+
+      // Set JWT in HTTP-only cookie
+      res.cookie('auth_token', jwtToken, this.jwtService.getCookieConfig());
 
       console.log('Authentication process completed successfully');
       res.json({ 
@@ -101,9 +112,17 @@ export class GoogleAuthController {
         return;
       }
 
-      console.log('Setting session data...');
-      req.session.userId = user.id;
-      req.session.email = user.email;
+      // Create JWT token with user info
+      const jwtPayload = {
+        user_id: user.id,
+        email: user.email,
+        sessionId: req.sessionID,
+        subscription_tier: user.subscription_tier
+      };
+      const jwtToken = this.jwtService.createSessionToken(jwtPayload);
+
+      // Set JWT in HTTP-only cookie
+      res.cookie('auth_token', jwtToken, this.jwtService.getCookieConfig());
 
       console.log('Token exchange completed successfully');
       res.json({
@@ -123,6 +142,11 @@ export class GoogleAuthController {
   public logout = async (req: any, res: Response): Promise<void> => {
     try {
       console.log(`Logging out user: ${req.session.userId}`);
+      
+      // Clear the auth cookie
+      res.clearCookie('auth_token', this.jwtService.getCookieConfig());
+      
+      // Destroy the session
       req.session.destroy((err: any) => {
         if (err) {
           console.error('Session destruction error:', err);

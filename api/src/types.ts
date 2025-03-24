@@ -24,6 +24,7 @@ export interface JWTPayload {
   user_id: string;
   email: string;
   subscription_tier: 'free' | 'premium';
+  sessionId: string;
 }
 
 export interface ApiError extends Error {
