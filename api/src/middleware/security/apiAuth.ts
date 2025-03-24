@@ -30,8 +30,6 @@ export const validateApiRequest = (
 ): void => {
   try {
     console.log('Validating API request...');
-    // Log incoming cookies for debugging
-    console.log('Incoming cookies:', req.cookies);
     
     // Validate client ID
     const clientId = req.headers['x-client-id'];
@@ -40,10 +38,17 @@ export const validateApiRequest = (
       return;
     }
 
-    // Get JWT from cookie
-    const token = req.cookies.auth_token;
+    // Get JWT from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Bearer token required' });
+      return;
+    }
+
+    // Extract the token from the Authorization header
+    const token = authHeader.split(' ')[1];
     if (!token) {
-      res.status(401).json({ error: 'Authentication required' });
+      res.status(401).json({ error: 'Invalid Bearer token format' });
       return;
     }
 
@@ -54,15 +59,8 @@ export const validateApiRequest = (
       // Attach user info to request
       req.user = payload;
       
-      // Refresh the token if needed
-      const newToken = jwtService.refreshTokenIfNeeded(token);
-      if (newToken) {
-        res.cookie('auth_token', newToken, jwtService.getCookieConfig());
-      }
-
       next();
     } catch (error) {
-      res.clearCookie('auth_token', jwtService.getCookieConfig());
       res.status(401).json({ error: 'Invalid or expired token' });
       return;
     }
