@@ -82,9 +82,6 @@ export class GoogleAuthController {
       };
       const jwtToken = this.jwtService.createSessionToken(jwtPayload);
 
-      // Send JWT token in response body instead of setting cookie
-      console.log("sending auth_token in response body", jwtToken);
-
       console.log('Authentication process completed successfully');
       
       

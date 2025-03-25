@@ -55,6 +55,8 @@ export class GoogleAuthService {
   }
 
   async encryptRefreshToken(refreshToken: string): Promise<string> {
+    console.log('--> Encrypting refresh token:', refreshToken);
+    
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(
       this.algorithm,
@@ -73,7 +75,10 @@ export class GoogleAuthService {
       authTag: authTag.toString('hex')
     };
     
-    return JSON.stringify(encryptedToken);
+    const result = JSON.stringify(encryptedToken);
+    console.log('--> Encrypted result:', result);
+    
+    return result;
   }
 
   async authenticateUser(code: string): Promise<AuthResponse> {
