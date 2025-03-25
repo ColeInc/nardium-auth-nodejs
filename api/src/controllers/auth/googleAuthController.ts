@@ -5,6 +5,7 @@ import { GoogleCallbackRequest } from '../../types/auth';
 import { EncryptionService } from '../../utils/encryption';
 import { SupabaseAuthService } from '../../services/auth/supabaseAuthService';
 import { JWTService } from '../../services/auth/jwtService';
+import { AccessToken } from 'src/types';
 
 interface AuthenticateUserResponse {
   success: boolean;
@@ -136,11 +137,17 @@ export class GoogleAuthController {
       console.log('New tokens received:', newTokens ? 'Success' : 'Failed');
       
       console.log('Successfully obtained new access token');
-      res.json({
+      
+      // Create the response object
+      const response: AccessToken = {
         success: true,
         access_token: newTokens.access_token,
-        expires_in: newTokens.expires_in
-      });
+        expires_in: newTokens.expires_in,
+        email: req.user?.email,
+        userId: req.user?.user_id
+      };
+      
+      res.json(response);
       
     } catch (error) {
       console.error('Access token refresh error:', error);
