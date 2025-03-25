@@ -6,6 +6,17 @@ import { EncryptionService } from '../../utils/encryption';
 import { SupabaseAuthService } from '../../services/auth/supabaseAuthService';
 import { JWTService } from '../../services/auth/jwtService';
 
+interface AuthenticateUserResponse {
+  success: boolean;
+  jwt_token: string;
+  csrf_token: string;
+  user: {
+    email: string;
+    sub: string;
+    subscription_tier?: string;
+  }
+}
+
 export class GoogleAuthController {
   private googleAuthService: GoogleAuthService;
   private tokenService: TokenService;
@@ -75,16 +86,20 @@ export class GoogleAuthController {
       console.log("sending auth_token in response body", jwtToken);
 
       console.log('Authentication process completed successfully');
-      res.json({ 
+      
+      
+      const response: AuthenticateUserResponse = {
         success: true,
-        auth_token: jwtToken,
-        csrfToken: req.csrfToken(),
+        jwt_token: jwtToken,
+        csrf_token: req.csrfToken(),
         user: {
           email: user.email,
           sub: userData.sub,
           subscription_tier: user.subscription_tier
         }
-      });
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error('Google auth error:', error);
       res.status(500).json({ error: 'Authentication failed' });
