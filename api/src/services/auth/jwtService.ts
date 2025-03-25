@@ -18,7 +18,12 @@ export class JWTService {
     }
     this.JWT_SECRET = process.env.JWT_SECRET;
     this.JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
-    this.NONCE_SECRET = Buffer.from(process.env.NONCE_SECRET);
+    
+    // Hash the NONCE_SECRET to ensure it's always 32 bytes
+    this.NONCE_SECRET = crypto
+      .createHash('sha256')
+      .update(process.env.NONCE_SECRET)
+      .digest();
   }
 
   private encryptNonce(dataObj: any): string {
@@ -31,14 +36,21 @@ export class JWTService {
   }
 
   private decryptNonce(encrypted: string): any {
-    const [ivHex, encryptedHex] = encrypted.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const encryptedText = Buffer.from(encryptedHex, 'hex');
+    try {
+      const [ivHex, encryptedHex] = encrypted.split(':');
+      const iv = Buffer.from(ivHex, 'hex');
+      const encryptedText = Buffer.from(encryptedHex, 'hex');
 
-    const decipher = crypto.createDecipheriv('aes-256-cbc', this.NONCE_SECRET, iv);
-    let decrypted = decipher.update(encryptedText);
-    decrypted = Buffer.concat([decrypted, decipher.final()]);
-    return JSON.parse(decrypted.toString('utf8'));
+      const decipher = crypto.createDecipheriv('aes-256-cbc', this.NONCE_SECRET, iv);
+      let decrypted = decipher.update(encryptedText);
+      decrypted = Buffer.concat([decrypted, decipher.final()]);
+      const result = JSON.parse(decrypted.toString('utf8'));
+      console.log('Successfully decrypted nonce');
+      return result;
+    } catch (error) {
+      console.error('Failed to decrypt nonce:', error);
+      throw new Error('Nonce decryption failed');
+    }
   }
 
   public createSessionToken(payload: { user_id: string; email: string; sessionId: string; subscription_tier?: string }): string {

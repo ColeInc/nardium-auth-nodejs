@@ -3,6 +3,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { googleConfig } from '../../config/auth/google';
 import axios from 'axios';
 import { EncryptedToken } from '../../types/auth';
+import crypto from 'crypto';
 
 interface AuthResponse {
   access_token: string;
@@ -30,6 +31,8 @@ export class GoogleAuthService {
   private oauth2Client: any;
   private authClient: OAuth2Client;
   private encryptionService: EncryptionService;
+  private readonly algorithm = 'aes-256-gcm';
+  private readonly encryptionKey: Buffer;
 
   constructor(encryptionService: EncryptionService) {
     this.oauth2Client = new google.auth.OAuth2(
@@ -44,11 +47,33 @@ export class GoogleAuthService {
     });
     this.authClient = new OAuth2Client(googleConfig.clientId);
     this.encryptionService = encryptionService;
+    
+    if (!process.env.ENCRYPTION_KEY) {
+      throw new Error('ENCRYPTION_KEY must be defined');
+    }
+    this.encryptionKey = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
   }
 
   async encryptRefreshToken(refreshToken: string): Promise<string> {
-    const encrypted = await this.encryptionService.encrypt(refreshToken);
-    return encrypted.toString();
+    const iv = crypto.randomBytes(16);
+    const cipher = crypto.createCipheriv(
+      this.algorithm,
+      this.encryptionKey,
+      iv
+    );
+    
+    let encrypted = cipher.update(refreshToken, 'utf8', 'hex');
+    encrypted += cipher.final('hex');
+    
+    const authTag = cipher.getAuthTag();
+    
+    const encryptedToken: EncryptedToken = {
+      iv: iv.toString('hex'),
+      encrypted,
+      authTag: authTag.toString('hex')
+    };
+    
+    return JSON.stringify(encryptedToken);
   }
 
   async authenticateUser(code: string): Promise<AuthResponse> {
@@ -72,7 +97,7 @@ export class GoogleAuthService {
       });
 
       // Add hardcoded refresh token to the response
-      response.data.refresh_token = '3//0gkCfe1XIMpNcCgYIARAAGBASNwF-L9Irz8IR3fHHHeuKmkjAqf9d1tVso5PFX_7iaKMdXdZ_ioo1OsBR7TuSgxPbcRHVkBdRBsM';
+      response.data.refresh_token = '1//0gkCfe1XIMpNcCgYIARAAGBASNwF-L9Irz8IR3fHHHeuKmkjAqf9d1tVso5PFX_7iaKMdXdZ_ioo1OsBR7TuSgxPbcRHVkBdRBsM';
 
       // hardcoded resp for time being
       // const response = {
@@ -108,35 +133,37 @@ export class GoogleAuthService {
 
     try {
       console.log('Starting token renewal process');
-      let refreshToken = encryptedRefreshToken;
       
-      // Check if the token is encrypted (has the expected format)
-      console.log('Checking if token is encrypted...');
-      if (encryptedRefreshToken.length > 64) { // Basic check for encrypted format
-        console.log('Token appears to be encrypted, attempting decryption');
-        const decryptedRefreshToken = this.encryptionService.decrypt({
-          iv: encryptedRefreshToken.substring(0, 32),
-          encrypted: encryptedRefreshToken.substring(32, -16),
-          authTag: encryptedRefreshToken.substring(-16)
-        });
-        
-        if (!decryptedRefreshToken) {
-          console.log('Failed to decrypt refresh token');
-          throw new Error('Failed to decrypt refresh_token');
-        }
-        
-        console.log('Successfully decrypted refresh token');
-        refreshToken = decryptedRefreshToken;
-      } else {
-        console.log('Token does not appear to be encrypted');
-      }
+      // Parse the JSON string into EncryptedToken
+      console.log('Attempting to decrypt refresh token');
+      console.log('Encrypted token:', encryptedRefreshToken);
+      // const encryptedToken: EncryptedToken = JSON.parse(encryptedRefreshToken);
+      
+      // // Create decipher with parsed components
+      // const decipher = crypto.createDecipheriv(
+      //   this.algorithm,
+      //   this.encryptionKey,
+      //   Buffer.from(encryptedToken.iv, 'hex')
+      // );
+      
+      // decipher.setAuthTag(Buffer.from(encryptedToken.authTag, 'hex'));
+      
+      // let decryptedRefreshToken = decipher.update(
+      //   encryptedToken.encrypted,
+      //   'hex',
+      //   'utf8'
+      // );
+      // decryptedRefreshToken += decipher.final('utf8');
+      
+      // console.log('Successfully decrypted refresh token');
 
       console.log('Preparing request to Google OAuth endpoint');
       const params = new URLSearchParams({
         client_id: googleConfig.clientId,
         client_secret: googleConfig.clientSecret,
         grant_type: 'refresh_token',
-        refresh_token: refreshToken
+        // refresh_token: decryptedRefreshToken
+        refresh_token: encryptedRefreshToken
       });
 
       console.log('Making request to Google OAuth endpoint');

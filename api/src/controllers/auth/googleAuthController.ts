@@ -50,7 +50,8 @@ export class GoogleAuthController {
       console.log('Encrypting refresh token...');
       const encryptedRefreshToken = await this.googleAuthService.encryptRefreshToken(tokens.refresh_token);
 
-      console.log('Creating/updating user in Supabase...');
+      console.log('Creating/updating user in Supabase...'); 
+      console.log('Storing encrypted refresh token in Supabase:', encryptedRefreshToken);
       const user = await this.supabaseAuthService.createOrUpdateUser(
         userData.email,
         userData.sub,
@@ -94,7 +95,7 @@ export class GoogleAuthController {
     try {
       console.log('Starting access token refresh process');
       console.log('Request headers:', req.headers);
-      console.log('Request cookies:', req.cookies);
+      // console.log('Request cookies:', req.cookies);
       
       // Get user ID from JWT token (which was set in auth_token cookie)
       const userId = req.user?.user_id;
