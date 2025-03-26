@@ -15,15 +15,6 @@ export interface GoogleTokens {
   id_token: string;
   expiry_date: number;
 }
-
-export interface AccessToken {
-  success: boolean;
-  access_token: string;
-  expires_in: number;
-  email?: string;
-  userId?: string;
-}
-
 export interface UserInfo {
   sub: string;
   email: string;
@@ -46,4 +37,24 @@ export interface GoogleCallbackRequest extends Request {
 }
 
 export interface AuthenticatedRequest extends Request {
-} 
+}
+
+export interface AuthenticateUserResponse {
+  success: boolean;
+  jwt_token: string;
+  csrf_token: string;
+  user: {
+    email: string;
+    sub: string;
+    subscription_tier?: string;
+  }
+}
+
+export interface AccessToken {
+  success: boolean;
+  access_token: string;
+  expires_in: number;
+  expiry_time: string;
+  email?: string;
+  userId?: string;
+}

@@ -1,21 +1,10 @@
 import { Response } from 'express';
 import { GoogleAuthService } from '../../services/auth/googleAuthService';
 import { TokenService } from '../../services/auth/tokenService';
-import { AccessToken, GoogleCallbackRequest } from '../../types/auth';
+import { AccessToken, AuthenticateUserResponse, GoogleCallbackRequest } from '../../types/auth';
 import { EncryptionService } from '../../utils/encryption';
 import { SupabaseAuthService } from '../../services/auth/supabaseAuthService';
 import { JWTService } from '../../services/auth/jwtService';
-
-interface AuthenticateUserResponse {
-  success: boolean;
-  jwt_token: string;
-  csrf_token: string;
-  user: {
-    email: string;
-    sub: string;
-    subscription_tier?: string;
-  }
-}
 
 export class GoogleAuthController {
   private googleAuthService: GoogleAuthService;
@@ -134,11 +123,13 @@ export class GoogleAuthController {
       
       console.log('Successfully obtained new access token');
       
-      // Create the response object
+      const expiryTime = new Date(Date.now() + (newTokens.expires_in * 1000));
+      
       const response: AccessToken = {
         success: true,
         access_token: newTokens.access_token,
         expires_in: newTokens.expires_in,
+        expiry_time: expiryTime.toISOString(),
         email: req.user?.email,
         userId: req.user?.user_id
       };
