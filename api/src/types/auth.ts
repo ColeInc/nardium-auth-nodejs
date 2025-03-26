@@ -16,6 +16,14 @@ export interface GoogleTokens {
   expiry_date: number;
 }
 
+export interface AccessToken {
+  success: boolean;
+  access_token: string;
+  expires_in: number;
+  email?: string;
+  userId?: string;
+}
+
 export interface UserInfo {
   sub: string;
   email: string;

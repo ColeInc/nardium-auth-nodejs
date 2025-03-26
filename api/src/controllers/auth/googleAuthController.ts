@@ -1,11 +1,10 @@
 import { Response } from 'express';
 import { GoogleAuthService } from '../../services/auth/googleAuthService';
 import { TokenService } from '../../services/auth/tokenService';
-import { GoogleCallbackRequest } from '../../types/auth';
+import { AccessToken, GoogleCallbackRequest } from '../../types/auth';
 import { EncryptionService } from '../../utils/encryption';
 import { SupabaseAuthService } from '../../services/auth/supabaseAuthService';
 import { JWTService } from '../../services/auth/jwtService';
-import { AccessToken } from 'src/types';
 
 interface AuthenticateUserResponse {
   success: boolean;
@@ -70,9 +69,6 @@ export class GoogleAuthController {
         encryptedRefreshToken
       );
       console.log(`User ${user.id} created/updated in Supabase`);
-
-      console.log('Storing refresh token...');
-      await this.tokenService.storeRefreshToken(user.id, tokens.refresh_token);
 
       // Create JWT token with user info
       const jwtPayload = {

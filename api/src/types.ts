@@ -31,10 +31,3 @@ export interface ApiError extends Error {
   statusCode?: number;
 } 
 
-export interface AccessToken {
-  success: boolean;
-  access_token: string;
-  expires_in: number;
-  email?: string;
-  userId?: string;
-}
