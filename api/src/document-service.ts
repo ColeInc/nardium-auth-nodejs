@@ -7,7 +7,8 @@ import { DocumentAccess, UserStatus, User } from './types';
  * This limit applies only to new documents - users can revisit
  * previously accessed documents without counting against this limit
  */
-const FREE_TIER_LIMIT = 20;
+// const FREE_TIER_LIMIT = 20;
+const FREE_TIER_LIMIT = 2;
 
 /**
  * Document Service
@@ -33,7 +34,6 @@ export class DocumentService {
   static async recordAccess(
     userId: string,
     documentId: string,
-    documentTitle: string
   ): Promise<DocumentAccess> {
     const now = new Date().toISOString();
 
@@ -64,7 +64,6 @@ export class DocumentService {
       .insert({
         user_id: userId,
         document_id: documentId,
-        document_title: documentTitle,
         first_accessed_at: now,
         last_accessed_at: now,
       })
@@ -88,8 +87,8 @@ export class DocumentService {
       .eq('user_id', userId);
 
     const documentCount = count || 0;
-    const remainingDocuments = user?.subscription_tier === 'premium' 
-      ? Infinity 
+    const remainingDocuments = user?.subscription_tier === 'premium'
+      ? Infinity
       : Math.max(0, FREE_TIER_LIMIT - documentCount);
 
     return {
@@ -118,7 +117,7 @@ export class DocumentService {
       .eq('id', userId)
       .select()
       .single();
-      
+
     if (error) throw error;
     return data;
   }

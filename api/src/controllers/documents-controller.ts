@@ -2,20 +2,20 @@ import { Request, Response } from 'express';
 import { DocumentService } from '../document-service';
 
 export class DocumentsController {
-  static async recordAccess(req: Request, res: Response) {
+  static async checkDocumentAccess(req: Request, res: Response) {
     try {
-      const { documentId, documentTitle } = req.body;
+      const { documentId } = req.body;
       const userId = req.user?.user_id;
 
-      if (!userId || !documentId || !documentTitle) {
-        return res.status(400).json({ 
-          error: 'Missing required fields: documentId and documentTitle are required' 
+      if (!userId || !documentId) {
+        return res.status(400).json({
+          error: 'Missing required fields: documentId required!'
         });
       }
 
       // Get user status to check document limits
       const userStatus = await DocumentService.getUserStatus(userId);
-      
+
       if (userStatus.subscription_tier === 'free' && userStatus.remaining_documents <= 0) {
         return res.status(403).json({
           error: 'Free tier document limit reached',
@@ -26,7 +26,6 @@ export class DocumentsController {
       const documentAccess = await DocumentService.recordAccess(
         userId,
         documentId,
-        documentTitle
       );
 
       res.json({ documentAccess, userStatus });
@@ -78,9 +77,9 @@ export class DocumentsController {
 
       const updatedUser = await DocumentService.upgradeUser(userId);
       const userStatus = await DocumentService.getUserStatus(userId);
-      
-      res.json({ 
-        success: true, 
+
+      res.json({
+        success: true,
         message: 'Successfully upgraded to premium',
         user: updatedUser,
         userStatus
@@ -90,4 +89,7 @@ export class DocumentsController {
       res.status(500).json({ error: 'Failed to upgrade user' });
     }
   }
-} 
+}
+
+
+export const documentsController = new DocumentsController(); 

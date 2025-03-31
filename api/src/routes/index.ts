@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { googleAuthController } from '../controllers/auth/googleAuthController';
 import { validateApiRequest } from '../middleware/security/apiAuth';
-
+import { documentsController } from '../controllers/documents-controller';
 const router = Router();
 
 // Log when routes are being registered
@@ -33,7 +33,7 @@ router.get('/auth/logout', validateApiRequest, googleAuthController.logout);
 
 // Add your other protected routes here
 // For example:
-// router.get('/documents', validateApiRequest, documentController.getDocuments);
+router.get('/documents/access', validateApiRequest, documentsController.checkDocumentLimit);
 // router.get('/user/status', validateApiRequest, userController.getStatus);
 
 console.log('API routes initialized successfully');
