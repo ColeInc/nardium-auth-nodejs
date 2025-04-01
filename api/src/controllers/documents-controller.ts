@@ -15,10 +15,26 @@ export class DocumentsController {
         });
       }
 
-      // Get user status to check document limits
+      // Get user status 
       const userStatus = await DocumentService.getUserStatus(userId);
 
-      if (userStatus.subscription_tier === 'free' && userStatus.remaining_documents <= 0) {
+      // Check if user has access to this document
+      const accessCheck = await DocumentService.checkDocumentAccess(userId, documentId);
+
+      // If the document is already in user's history or user has not reached limit, grant access
+      if (accessCheck.hasAccess) {
+        // Record the access
+        const documentAccess = await DocumentService.recordAccess(
+          userId,
+          documentId,
+        );
+
+        console.log(`checkDocumentAccess succeeded for document: ${documentId}, user: ${userId}`);
+        return res.json({ documentAccess, userStatus });
+      }
+
+      // If we get here, access is denied (free tier, not in history, and at limit)
+      if (userStatus.subscription_tier === 'free') {
         console.log(`checkDocumentAccess failed: Free tier limit reached for user: ${userId}`);
         return res.status(403).json({
           error: 'Free tier document limit reached',
@@ -26,13 +42,9 @@ export class DocumentsController {
         });
       }
 
-      const documentAccess = await DocumentService.recordAccess(
-        userId,
-        documentId,
-      );
-
-      console.log(`checkDocumentAccess succeeded for document: ${documentId}, user: ${userId}`);
-      res.json({ documentAccess, userStatus });
+      // This should never happen since premium users always get access
+      console.log(`Unexpected state in checkDocumentAccess for user: ${userId}`);
+      res.status(500).json({ error: 'Unexpected error processing document access' });
     } catch (error) {
       console.error('Error recording document access:', error);
       console.log(`checkDocumentAccess failed with error for document: ${req.body.documentId}`);

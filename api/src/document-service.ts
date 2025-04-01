@@ -3,7 +3,7 @@ import { DocumentAccess, UserStatus, User } from './types';
 
 /**
  * Free tier document limit
- * Free users are limited to 20 unique documents
+ * Free users are limited to 2 unique documents
  * This limit applies only to new documents - users can revisit
  * previously accessed documents without counting against this limit
  */
@@ -18,18 +18,63 @@ const FREE_TIER_LIMIT = 2;
  */
 export class DocumentService {
   /**
-   * Records a user's access to a document
+   * Checks if a user has access to a document
    * 
    * The limit enforcement works through the following process:
    * 1. When a user opens a Google Doc, the extension sends the document ID to the backend
    * 2. The backend checks if the document is already in the user's access history
    *    - If yes: access is always granted (doesn't count against limit)
-   *    - If no: system checks if user has accessed fewer than 20 unique documents (free tier)
+   *    - If no: system checks if user has accessed fewer than FREE_TIER_LIMIT unique documents (free tier)
    * 3. For free tier users over the limit, an error is returned
    * 4. Premium users bypass the limit check entirely
-   * 
-   * This model allows users to revisit documents they've already accessed without restriction
-   * while still enforcing the new document limit for free tier users.
+   */
+  static async checkDocumentAccess(
+    userId: string,
+    documentId: string,
+  ): Promise<{ hasAccess: boolean; isExistingDocument: boolean }> {
+    // Check if document access already exists
+    const { data: existingAccess } = await supabaseAdmin
+      .from('document_access')
+      .select()
+      .eq('user_id', userId)
+      .eq('document_id', documentId)
+      .single();
+
+    if (existingAccess) {
+      // User has already accessed this document
+      return { hasAccess: true, isExistingDocument: true };
+    }
+
+    // Get user's subscription tier
+    const { data: user } = await supabaseAdmin
+      .from('users')
+      .select('subscription_tier')
+      .eq('id', userId)
+      .single();
+
+    // If user is premium, they always have access
+    if (user?.subscription_tier === 'premium') {
+      return { hasAccess: true, isExistingDocument: false };
+    }
+
+    // Count user's existing documents
+    const { count } = await supabaseAdmin
+      .from('document_access')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId);
+
+    const documentCount = count || 0;
+
+    // Check if user is at or over the limit
+    if (documentCount >= FREE_TIER_LIMIT) {
+      return { hasAccess: false, isExistingDocument: false };
+    }
+
+    return { hasAccess: true, isExistingDocument: false };
+  }
+
+  /**
+   * Records a user's access to a document
    */
   static async recordAccess(
     userId: string,
