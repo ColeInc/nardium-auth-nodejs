@@ -4,7 +4,6 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
-import csrf from 'csurf';
 import router from './routes';
 import dotenv from 'dotenv';
 
@@ -58,7 +57,7 @@ app.use(session({
 }));
 
 // CSRF protection
-app.use(csrf({ cookie: true }));
+// app.use(csrf({ cookie: true }));
 
 // Routes
 app.use('/api', router);

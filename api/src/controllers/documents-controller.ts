@@ -3,11 +3,13 @@ import { DocumentService } from '../document-service';
 
 export class DocumentsController {
   static async checkDocumentAccess(req: Request, res: Response) {
+    console.log(`Starting checkDocumentAccess for document: ${req.body.documentId}`);
     try {
       const { documentId } = req.body;
       const userId = req.user?.user_id;
 
       if (!userId || !documentId) {
+        console.log(`checkDocumentAccess failed: Missing required fields for document: ${documentId}`);
         return res.status(400).json({
           error: 'Missing required fields: documentId required!'
         });
@@ -17,6 +19,7 @@ export class DocumentsController {
       const userStatus = await DocumentService.getUserStatus(userId);
 
       if (userStatus.subscription_tier === 'free' && userStatus.remaining_documents <= 0) {
+        console.log(`checkDocumentAccess failed: Free tier limit reached for user: ${userId}`);
         return res.status(403).json({
           error: 'Free tier document limit reached',
           userStatus
@@ -28,9 +31,11 @@ export class DocumentsController {
         documentId,
       );
 
+      console.log(`checkDocumentAccess succeeded for document: ${documentId}, user: ${userId}`);
       res.json({ documentAccess, userStatus });
     } catch (error) {
       console.error('Error recording document access:', error);
+      console.log(`checkDocumentAccess failed with error for document: ${req.body.documentId}`);
       res.status(500).json({ error: 'Failed to record document access' });
     }
   }
@@ -91,5 +96,9 @@ export class DocumentsController {
   }
 }
 
-
-export const documentsController = new DocumentsController(); 
+export const documentsController = {
+  checkDocumentAccess: DocumentsController.checkDocumentAccess,
+  getUserDocuments: DocumentsController.getUserDocuments,
+  getUserStatus: DocumentsController.getUserStatus,
+  upgradeUser: DocumentsController.upgradeUser
+}; 

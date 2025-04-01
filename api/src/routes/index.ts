@@ -33,7 +33,8 @@ router.get('/auth/logout', validateApiRequest, googleAuthController.logout);
 
 // Add your other protected routes here
 // For example:
-router.get('/documents/access', validateApiRequest, documentsController.checkDocumentLimit);
+router.post('/documents/access', validateApiRequest, documentsController.checkDocumentAccess);
+
 // router.get('/user/status', validateApiRequest, userController.getStatus);
 
 console.log('API routes initialized successfully');

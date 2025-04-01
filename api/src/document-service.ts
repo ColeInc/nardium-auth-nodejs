@@ -1,4 +1,4 @@
-import { supabase } from './supabase-client';
+import { supabaseAdmin } from './supabase-client';
 import { DocumentAccess, UserStatus, User } from './types';
 
 /**
@@ -38,7 +38,7 @@ export class DocumentService {
     const now = new Date().toISOString();
 
     // Check if document access already exists
-    const { data: existingAccess } = await supabase
+    const { data: existingAccess } = await supabaseAdmin
       .from('document_access')
       .select()
       .eq('user_id', userId)
@@ -47,7 +47,7 @@ export class DocumentService {
 
     if (existingAccess) {
       // Update last accessed timestamp
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('document_access')
         .update({ last_accessed_at: now })
         .eq('id', existingAccess.id)
@@ -59,7 +59,7 @@ export class DocumentService {
     }
 
     // Create new document access record
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('document_access')
       .insert({
         user_id: userId,
@@ -75,13 +75,13 @@ export class DocumentService {
   }
 
   static async getUserStatus(userId: string): Promise<UserStatus> {
-    const { data: user } = await supabase
+    const { data: user } = await supabaseAdmin
       .from('users')
       .select('subscription_tier')
       .eq('id', userId)
       .single();
 
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from('document_access')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
@@ -99,7 +99,7 @@ export class DocumentService {
   }
 
   static async getUserDocuments(userId: string): Promise<DocumentAccess[]> {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('document_access')
       .select('*')
       .eq('user_id', userId)
@@ -111,7 +111,7 @@ export class DocumentService {
 
   static async upgradeUser(userId: string): Promise<User> {
     // Update the user's subscription tier to premium
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update({ subscription_tier: 'premium' })
       .eq('id', userId)

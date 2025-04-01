@@ -113,7 +113,6 @@ create table document_access (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references users(id) not null,
   document_id text not null,
-  document_title text not null,
   first_accessed_at timestamp with time zone default timezone('utc'::text, now()) not null,
   last_accessed_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
