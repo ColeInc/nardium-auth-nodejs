@@ -21,8 +21,8 @@ const app: Express = express();
 // Security middleware configuration
 app.use(helmet());
 
-// Body parser middleware
-app.use(express.json());
+// Body parser middleware is handled in routes/index.ts
+// to properly handle Stripe webhooks that need raw body data
 
 // Cookie parser middleware
 app.use(cookieParser());
@@ -40,7 +40,7 @@ app.use(cors({
   origin: process.env.CHROME_EXTENSION_URL,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version', 'X-Client-ID', 'X-CSRF-Token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version', 'X-Client-ID', 'X-CSRF-Token', 'Stripe-Signature'],
   exposedHeaders: ['Set-Cookie', 'Date', 'ETag']
 }));
 

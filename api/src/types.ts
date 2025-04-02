@@ -2,7 +2,8 @@ export interface User {
   id: string;
   email: string;
   created_at: string;
-  subscription_tier: 'free' | 'premium';
+  subscription_tier: 'free' | 'premium' | 'subscriber';
+  stripe_customer_id?: string;
 }
 
 export interface DocumentAccess {
@@ -14,7 +15,7 @@ export interface DocumentAccess {
 }
 
 export interface UserStatus {
-  subscription_tier: 'free' | 'premium';
+  subscription_tier: 'free' | 'premium' | 'subscriber';
   document_count: number;
   remaining_documents: number;
 }
@@ -22,11 +23,17 @@ export interface UserStatus {
 export interface JWTPayload {
   user_id: string;
   email: string;
-  subscription_tier: 'free' | 'premium';
+  subscription_tier: 'free' | 'premium' | 'subscriber';
   sessionId: string;
 }
 
 export interface ApiError extends Error {
   statusCode?: number;
+}
+
+export interface StripeCheckoutPayload {
+  priceId: string;
+  successUrl: string;
+  cancelUrl: string;
 }
 
