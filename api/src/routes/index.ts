@@ -48,7 +48,7 @@ router.post('/documents/access', validateApiRequest, documentsController.checkDo
 // Payment routes
 router.post('/create-stripe-session', validateApiRequest, stripeController.createStripeSession);
 
-// Stripe webhook - needs raw body (not JSON parsed)
+// Stripe webhook - listening for events from Stripe
 router.post(
   '/stripe/webhook',
   express.raw({ type: 'application/json' }),
