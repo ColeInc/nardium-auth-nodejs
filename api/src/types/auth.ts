@@ -7,6 +7,14 @@ declare module 'express-session' {
   }
 }
 
+export interface JWTPayload {
+  sub: string;
+  email: string;
+  sessionId: string;
+  iat?: number;
+  exp?: number;
+}
+
 export interface GoogleTokens {
   access_token: string;
   refresh_token: string;
@@ -15,6 +23,7 @@ export interface GoogleTokens {
   id_token: string;
   expiry_date: number;
 }
+
 export interface UserInfo {
   sub: string;
   email: string;
@@ -34,6 +43,7 @@ export interface GoogleCallbackRequest extends Request {
     code?: string | string[];
   };
   csrfToken(): string;
+  sessionID: string;
 }
 
 export interface AuthenticatedRequest extends Request {

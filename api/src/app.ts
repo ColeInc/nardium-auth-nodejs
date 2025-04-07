@@ -9,13 +9,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-declare module 'express-session' {
-  interface SessionData {
-    userId: string;
-    email: string;
-  }
-}
-
 const app: Express = express();
 
 // Security middleware configuration

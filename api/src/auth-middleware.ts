@@ -5,7 +5,7 @@ import { JWTPayload } from './types';
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload;
+      user?: JWTPayload & { sessionId: string };
     }
   }
 }
@@ -24,7 +24,7 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
       throw new Error('JWT_SECRET not configured');
     }
 
-    const user = jwt.verify(token, jwtSecret) as JWTPayload;
+    const user = jwt.verify(token, jwtSecret) as JWTPayload & { sessionId: string };
     req.user = user;
     next();
   } catch (error) {

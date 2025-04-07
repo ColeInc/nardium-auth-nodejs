@@ -25,7 +25,7 @@ router.use((req, res, next) => {
 });
 
 // Public authentication routes
-router.get('/auth/google/callback', googleAuthController.authenticateUser);
+router.get('/auth/google/callback', (req, res) => googleAuthController.authenticateUser(req, res));
 // router.post('/auth/google/token', googleAuthController.exchangeToken);
 
 // Protected routes
