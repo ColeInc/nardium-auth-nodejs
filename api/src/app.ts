@@ -20,14 +20,6 @@ app.use(helmet());
 // Cookie parser middleware
 app.use(cookieParser());
 
-// Rate limiting configuration
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later'
-});
-app.use(limiter);
-
 // CORS configuration
 app.use(cors({
   origin: process.env.CHROME_EXTENSION_URL,
@@ -48,6 +40,14 @@ app.use(session({
     maxAge: 24 * 60 * 60 * 1000
   }
 }));
+
+// Rate limiting configuration
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: 'Too many requests from this IP, please try again later'
+});
+app.use(limiter);
 
 // CSRF protection
 // app.use(csrf({ cookie: true }));
