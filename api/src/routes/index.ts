@@ -3,7 +3,7 @@ import { googleAuthController } from '../controllers/auth/googleAuthController';
 import { validateApiRequest } from '../middleware/security/apiAuth';
 import { documentsController } from '../controllers/documents-controller';
 import { stripeController } from '../controllers/payments/stripeController';
-import express from 'express';
+import express, { Request, Response } from 'express';
 const router = Router();
 
 // Log when routes are being registered
@@ -25,8 +25,10 @@ router.use((req, res, next) => {
 });
 
 // Public authentication routes
-router.get('/auth/google/callback', (req, res) => googleAuthController.authenticateUser(req, res));
-// router.post('/auth/google/token', googleAuthController.exchangeToken);
+router.get('/auth/google/callback', (req: Request, res: Response) => {
+  // Use type assertion to bypass TypeScript strictness
+  return googleAuthController.authenticateUser(req as any, res);
+});
 
 // Protected routes
 router.use((req, res, next) => {
@@ -39,7 +41,6 @@ router.use((req, res, next) => {
 
 // Protected auth routes
 router.get('/auth/google/refresh-token', validateApiRequest, googleAuthController.refreshAccessToken);
-// router.post('/auth/google/token', validateApiRequest, googleAuthController.exchangeToken);
 router.get('/auth/logout', validateApiRequest, googleAuthController.logout);
 
 // Document routes

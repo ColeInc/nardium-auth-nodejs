@@ -1,4 +1,5 @@
 import { Request } from 'express';
+import { Session, SessionData } from 'express-session';
 
 declare module 'express-session' {
   interface SessionData {
@@ -38,13 +39,12 @@ export interface EncryptedToken {
   authTag: string;
 }
 
-export interface GoogleCallbackRequest extends Request {
+export type GoogleCallbackRequest = Request & {
   query: {
     code?: string | string[];
   };
-  csrfToken(): string;
-  sessionID: string;
-}
+  sessionID?: string;
+};
 
 export interface AuthenticatedRequest extends Request {
 }
