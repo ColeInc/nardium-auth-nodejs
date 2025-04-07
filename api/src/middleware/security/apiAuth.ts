@@ -5,7 +5,7 @@ import { JWTPayload } from '../../types';
 declare global {
   namespace Express {
     interface Request {
-      user?: JWTPayload & { sessionId: string };
+      user?: JWTPayload;
     }
   }
 }
@@ -30,7 +30,7 @@ export const validateApiRequest = (
 ): void => {
   try {
     console.log('Validating API request...');
-    
+
     // Validate client ID
     const clientId = req.headers['x-client-id'];
     if (!clientId || clientId !== process.env.EXPECTED_CLIENT_ID) {
@@ -55,10 +55,10 @@ export const validateApiRequest = (
     try {
       // Verify JWT token
       const payload = jwtService.verifyToken(token);
-      
+
       // Attach user info to request
       req.user = payload;
-      
+
       next();
     } catch (error) {
       res.status(401).json({ error: 'Invalid or expired token' });

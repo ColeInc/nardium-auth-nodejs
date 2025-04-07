@@ -18,7 +18,7 @@ export class JWTService {
     }
     this.JWT_SECRET = process.env.JWT_SECRET;
     this.JWT_EXPIRY = process.env.JWT_EXPIRY || '24h';
-    
+
     // Hash the NONCE_SECRET to ensure it's always 32 bytes
     this.NONCE_SECRET = crypto
       .createHash('sha256')
@@ -72,7 +72,7 @@ export class JWTService {
     return jwt.sign(jwtPayload, this.JWT_SECRET, { expiresIn: '24h' });
   }
 
-  public verifyToken(token: string): JWTPayload & { sessionId: string } {
+  public verifyToken(token: string): JWTPayload {
     try {
       console.log('Verifying JWT token:', token);
       const decoded = jwt.verify(token, this.JWT_SECRET) as any;

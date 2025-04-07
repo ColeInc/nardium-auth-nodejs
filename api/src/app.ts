@@ -3,7 +3,6 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import cookieParser from 'cookie-parser';
-import session from 'express-session';
 import router from './routes';
 import dotenv from 'dotenv';
 
@@ -27,18 +26,6 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version', 'X-Client-ID', 'X-CSRF-Token', 'Stripe-Signature'],
   exposedHeaders: ['Set-Cookie', 'Date', 'ETag']
-}));
-
-// Session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET!,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000
-  }
 }));
 
 // Rate limiting configuration

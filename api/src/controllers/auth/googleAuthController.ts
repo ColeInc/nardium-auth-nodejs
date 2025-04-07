@@ -5,6 +5,7 @@ import { AccessToken, AuthenticateUserResponse, GoogleCallbackRequest } from '..
 import { EncryptionService } from '../../utils/encryption';
 import { SupabaseAuthService } from '../../services/auth/supabaseAuthService';
 import { JWTService } from '../../services/auth/jwtService';
+import { v4 as uuidv4 } from 'uuid';
 
 export class GoogleAuthController {
   private googleAuthService: GoogleAuthService;
@@ -27,7 +28,7 @@ export class GoogleAuthController {
     try {
       console.log('Starting Google OAuth callback handling');
       const code = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
-      
+
       if (!code || typeof code !== 'string') {
         console.log('Error: No authorization code provided or invalid format');
         res.status(400).json({ error: 'Authorization code is required' });
@@ -37,11 +38,11 @@ export class GoogleAuthController {
       console.log('Authenticating with Google...');
       const tokens = await this.googleAuthService.authenticateUser(code);
       console.log('Successfully obtained Google tokens');
-      
+
       console.log('Verifying user info from ID token...');
       const userData = await this.googleAuthService.verifyAndGetUserInfo(tokens.id_token);
       console.log(`User info verified for email: ${userData.email}`);
-      
+
       if (!tokens.refresh_token) {
         console.log('Error: No refresh token received from Google');
         throw new Error('No refresh token received from Google');
@@ -50,7 +51,7 @@ export class GoogleAuthController {
       console.log('Encrypting refresh token...');
       const encryptedRefreshToken = await this.googleAuthService.encryptRefreshToken(tokens.refresh_token);
 
-      console.log('Creating/updating user in Supabase...'); 
+      console.log('Creating/updating user in Supabase...');
       console.log('Storing encrypted refresh token in Supabase:', encryptedRefreshToken);
       const user = await this.supabaseAuthService.createOrUpdateUser(
         userData.email,
@@ -59,29 +60,32 @@ export class GoogleAuthController {
       );
       console.log(`User ${user.id} created/updated in Supabase`);
 
+      // Generate a unique session ID instead of using req.sessionID
+      const sessionId = uuidv4();
+
       // Create JWT token with user info
       const jwtPayload = {
         user_id: user.id,
         email: user.email,
-        sessionId: req.sessionID,
+        sessionId: sessionId,
         subscription_tier: user.subscription_tier
       };
       const jwtToken = this.jwtService.createSessionToken(jwtPayload);
 
       console.log('Authentication process completed successfully');
-      
-      
+
+
       const response: AuthenticateUserResponse = {
         success: true,
         jwt_token: jwtToken,
-        csrf_token: req.csrfToken(),
+        csrf_token: req.csrfToken ? req.csrfToken() : undefined,
         user: {
           email: user.email,
           sub: userData.sub,
           subscription_tier: user.subscription_tier
         }
       };
-      
+
       res.json(response);
     } catch (error) {
       console.error('Google auth error:', error);
@@ -94,11 +98,11 @@ export class GoogleAuthController {
       console.log('Starting access token refresh process');
       console.log('Request headers:', req.headers);
       // console.log('Request cookies:', req.cookies);
-      
+
       // Get user ID from JWT token (which was set in auth_token cookie)
       const userId = req.user?.user_id;
       console.log('User ID from request:', userId);
-      
+
       if (!userId) {
         console.log('Error: No user ID found in request');
         res.status(401).json({ error: 'Unauthorized' });
@@ -109,7 +113,7 @@ export class GoogleAuthController {
       // Get the stored refresh token for this user
       const refreshToken = await this.tokenService.getRefreshToken(userId);
       console.log('Refresh token retrieved:', refreshToken ? 'Found' : 'Not found');
-      
+
       if (!refreshToken) {
         console.log(`Error: No refresh token found for user ${userId}`);
         res.status(401).json({ error: 'No refresh token found' });
@@ -120,11 +124,11 @@ export class GoogleAuthController {
       // Use the refresh token to get a new access token from Google
       const newTokens = await this.googleAuthService.refreshAccessToken(refreshToken);
       console.log('New tokens received:', newTokens ? 'Success' : 'Failed');
-      
+
       console.log('Successfully obtained new access token');
-      
+
       const expiryTime = new Date(Date.now() + (newTokens.expires_in * 1000));
-      
+
       const response: AccessToken = {
         success: true,
         access_token: newTokens.access_token,
@@ -133,9 +137,9 @@ export class GoogleAuthController {
         email: req.user?.email,
         userId: req.user?.user_id
       };
-      
+
       res.json(response);
-      
+
     } catch (error) {
       console.error('Access token refresh error:', error);
       res.status(500).json({ error: 'Failed to refresh access token' });
@@ -146,7 +150,7 @@ export class GoogleAuthController {
   //   try {
   //     console.log('Starting token exchange process');
   //     const { token } = req.body;
-      
+
   //     if (!token) {
   //       console.log('Error: No token provided');
   //       res.status(400).json({ error: 'Token is required' });
@@ -155,21 +159,24 @@ export class GoogleAuthController {
 
   //     console.log('Verifying token and getting user info...');
   //     const userData = await this.googleAuthService.verifyAndGetUserInfo(token);
-      
+
   //     console.log('Getting user from Supabase...');
   //     const user = await this.supabaseAuthService.getUserByEmail(userData.email);
-      
+
   //     if (!user) {
   //       console.log(`Error: No user found for email ${userData.email}`);
   //       res.status(404).json({ error: 'User not found' });
   //       return;
   //     }
 
+  //     // Generate a unique session ID
+  //     const sessionId = uuidv4();
+
   //     // Create JWT token with user info
   //     const jwtPayload = {
   //       user_id: user.id,
   //       email: user.email,
-  //       sessionId: req.sessionID,
+  //       sessionId: sessionId,
   //       subscription_tier: user.subscription_tier
   //     };
   //     const jwtToken = this.jwtService.createSessionToken(jwtPayload);
@@ -194,20 +201,14 @@ export class GoogleAuthController {
 
   public logout = async (req: any, res: Response): Promise<void> => {
     try {
-      console.log(`Logging out user: ${req.session.userId}`);
-      
+      console.log(`Logging out user: ${req.user?.user_id || 'unknown'}`);
+
       // Clear the auth cookie
       res.clearCookie('auth_token', this.jwtService.getCookieConfig());
-      
-      // Destroy the session
-      req.session.destroy((err: any) => {
-        if (err) {
-          console.error('Session destruction error:', err);
-          throw err;
-        }
-        console.log('Logout successful');
-        res.json({ success: true });
-      });
+
+      // No need to destroy session since we're not using sessions anymore
+      console.log('Logout successful');
+      res.json({ success: true });
     } catch (error) {
       console.error('Logout error:', error);
       res.status(500).json({ error: 'Logout failed' });

@@ -23,8 +23,11 @@ export interface UserStatus {
 export interface JWTPayload {
   user_id: string;
   email: string;
-  subscription_tier: 'free' | 'premium' | 'subscriber';
+  subscription_tier?: 'free' | 'premium' | 'subscriber';
   sessionId: string;
+  sub?: string;
+  iat?: number;
+  exp?: number;
 }
 
 export interface ApiError extends Error {

@@ -1,12 +1,5 @@
 import { Request } from 'express';
-import { Session, SessionData } from 'express-session';
-
-declare module 'express-session' {
-  interface SessionData {
-    userId: string;
-    email: string;
-  }
-}
+import { JWTPayload as BaseJWTPayload } from '../types';
 
 export interface JWTPayload {
   sub: string;
@@ -14,6 +7,8 @@ export interface JWTPayload {
   sessionId: string;
   iat?: number;
   exp?: number;
+  user_id?: string;
+  subscription_tier?: string;
 }
 
 export interface GoogleTokens {
@@ -43,16 +38,16 @@ export type GoogleCallbackRequest = Request & {
   query: {
     code?: string | string[];
   };
-  sessionID?: string;
 };
 
 export interface AuthenticatedRequest extends Request {
+  user?: BaseJWTPayload;
 }
 
 export interface AuthenticateUserResponse {
   success: boolean;
   jwt_token: string;
-  csrf_token: string;
+  csrf_token?: string;
   user: {
     email: string;
     sub: string;

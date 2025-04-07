@@ -7,7 +7,6 @@ dotenv.config();
 export interface EnvVariables {
     NODE_ENV: string;
     PORT: number;
-    SESSION_SECRET: string;
     CHROME_EXTENSION_URL: string;
     [key: string]: string | number | undefined;
 }
@@ -16,7 +15,6 @@ export interface EnvVariables {
 export const env: EnvVariables = {
     NODE_ENV: process.env.NODE_ENV || 'development',
     PORT: parseInt(process.env.PORT || '3000', 10),
-    SESSION_SECRET: process.env.SESSION_SECRET || 'default-secret',
     CHROME_EXTENSION_URL: process.env.CHROME_EXTENSION_URL || 'http://localhost:3000'
 };
 

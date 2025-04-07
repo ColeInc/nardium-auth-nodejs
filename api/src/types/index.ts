@@ -4,7 +4,6 @@ import { Request, Response, NextFunction } from 'express';
 export interface EnvVariables {
     NODE_ENV: string;
     PORT: number;
-    SESSION_SECRET: string;
     CHROME_EXTENSION_URL: string;
     [key: string]: string | number | undefined;
 }
