@@ -1,10 +1,11 @@
 import app from './app';
-import dotenv from 'dotenv';
+import { env } from './utils/env';
 
-dotenv.config();
+// Only start the server if this file is run directly (not imported)
+if (require.main === module) {
+  app.listen(env.PORT, () => {
+    console.log(`Server running in development mode on port ${env.PORT}`);
+  });
+}
 
-const port = process.env.PORT || 3000;
-
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-}); 
+export default app; 

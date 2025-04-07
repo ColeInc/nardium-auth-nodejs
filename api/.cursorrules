@@ -1,0 +1,18 @@
+{
+  "rules": [
+    {
+      "pattern": "**/*.ts",
+      "exclude": ["**/node_modules/**", "**/dist/**"],
+      "lint": {
+        "typescript": true
+      }
+    },
+    {
+      "pattern": "**/*.json",
+      "exclude": ["**/node_modules/**", "**/dist/**"],
+      "lint": {
+        "json": true
+      }
+    }
+  ]
+} 
