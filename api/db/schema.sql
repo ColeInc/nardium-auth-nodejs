@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   subscription_tier TEXT DEFAULT 'free' CHECK (subscription_tier IN ('free', 'premium', 'subscriber')),
-  stripe_customer_id TEXT UNIQUE
+  stripe_customer_id TEXT UNIQUE,
+  subscription_id TEXT,
+  subscription_status TEXT
 );
 
 -- Row-level security policies

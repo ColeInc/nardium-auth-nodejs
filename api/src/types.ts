@@ -4,6 +4,8 @@ export interface User {
   created_at: string;
   subscription_tier: 'free' | 'premium' | 'subscriber';
   stripe_customer_id?: string;
+  subscription_id?: string;
+  subscription_status?: string;
 }
 
 export interface DocumentAccess {

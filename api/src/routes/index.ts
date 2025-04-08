@@ -58,6 +58,16 @@ router.post(
 
 // router.get('/user/status', validateApiRequest, userController.getStatus);
 
+// Health check endpoint
+router.get('/health', (req: Request, res: Response) => {
+  const healthcheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: Date.now()
+  };
+  res.status(200).json(healthcheck);
+});
+
 console.log('API routes initialized successfully');
 
 export default router; 
