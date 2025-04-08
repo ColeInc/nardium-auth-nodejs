@@ -15,11 +15,5 @@
       "src": "/(.*)",
       "dest": "/functions/index.ts"
     }
-  ],
-  "crons": [
-    {
-      "path": "/api/health?warmer=true",
-      "schedule": "*/5 * * * *"
-    }
   ]
 } 

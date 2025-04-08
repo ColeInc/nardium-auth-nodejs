@@ -32,12 +32,6 @@ const handler = serverless(app, {
 
 // Export the handler function for Vercel
 export default async function (req: VercelRequest, res: VercelResponse): Promise<any> {
-    // Check for warmup requests
-    if (req.headers['x-warmer'] === 'true') {
-        console.log('Handling warm-up request');
-        return res.status(200).send('Warmed');
-    }
-
     try {
         // Ensure resources are initialized before handling request
         await initializeResources();
