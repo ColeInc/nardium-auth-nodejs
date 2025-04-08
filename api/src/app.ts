@@ -35,15 +35,29 @@ const limiter = rateLimit({
   message: 'Too many requests from this IP, please try again later',
   // Add custom key generator for serverless environments
   keyGenerator: (req) => {
-    // Try to get IP from various headers that might be present in serverless environments
-    const ip = req.headers['x-forwarded-for'] ||
-      req.headers['x-real-ip'] ||
-      req.ip ||
-      req.connection.remoteAddress ||
-      'unknown';
+    // Get IP from various headers that might be present in serverless environments
+    const forwardedFor = req.headers['x-forwarded-for'];
+    const realIp = req.headers['x-real-ip'];
+    const remoteAddr = req.connection?.remoteAddress;
 
-    // If it's an array, take the first IP
-    return Array.isArray(ip) ? ip[0] : ip;
+    // If x-forwarded-for exists, use the first IP (client's original IP)
+    if (forwardedFor) {
+      const ips = Array.isArray(forwardedFor) ? forwardedFor : forwardedFor.split(',');
+      return ips[0].trim();
+    }
+
+    // Fallback to x-real-ip
+    if (realIp) {
+      return Array.isArray(realIp) ? realIp[0] : realIp;
+    }
+
+    // Fallback to remote address
+    if (remoteAddr) {
+      return remoteAddr;
+    }
+
+    // If all else fails, use a fallback identifier
+    return 'unknown';
   }
 });
 app.use(limiter);
