@@ -1,22 +1,59 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const supabaseUrl = process.env.SUPABASE_URL || '';
 const supabaseKey = process.env.SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase configuration. Please check your environment variables.');
 }
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase clients as singletons to be reused across serverless function invocations
+let _supabase: SupabaseClient | null = null;
+let _supabaseAdmin: SupabaseClient | null = null;
 
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+// Return the singleton instances directly rather than wrapping them
+export function getSupabaseClient(): SupabaseClient {
+  if (!_supabase) {
+    console.log('Initializing Supabase client');
+    _supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false
+      },
+      global: {
+        headers: { 'x-connection-type': 'serverless' },
+      }
+    });
+  }
+  return _supabase;
+}
+
+export function getSupabaseAdminClient(): SupabaseClient {
+  if (!_supabaseAdmin) {
+    console.log('Initializing Supabase admin client');
+    _supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      {
+        auth: {
+          persistSession: false
+        },
+        global: {
+          headers: { 'x-connection-type': 'serverless' },
+        }
+      }
+    );
+  }
+  return _supabaseAdmin;
+}
+
+// For backward compatibility, export direct references to the singleton instances
+// This allows existing code to continue using the chainable query pattern
+export const supabase = getSupabaseClient();
+export const supabaseAdmin = getSupabaseAdminClient();
 
 /**
  * Security Model:
@@ -44,22 +81,22 @@ export const supabaseAdmin = createClient(
  * - Create policy "Users can only access their own documents":
  *   - USING expression: (auth.uid() = user_id)
  *   - Check for operations: SELECT, INSERT, UPDATE, DELETE
- */ 
+ */
 
-// Add these authentication helper functions
+// Authentication helper functions
 export const signInWithGoogle = async () => {
-  const { data, error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await getSupabaseClient().auth.signInWithOAuth({
     provider: 'google'
   });
   return { data, error };
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
+  const { error } = await getSupabaseClient().auth.signOut();
   return { error };
 };
 
 export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: { user }, error } = await getSupabaseClient().auth.getUser();
   return { user, error };
 }; 

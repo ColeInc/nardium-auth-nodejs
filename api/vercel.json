@@ -11,5 +11,17 @@
       "src": "/(.*)",
       "dest": "/functions/index.ts"
     }
+  ],
+  "functions": {
+    "functions/index.ts": {
+      "memory": 1024,
+      "maxDuration": 10
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/health?warmer=true",
+      "schedule": "*/5 * * * *"
+    }
   ]
 } 

@@ -1,54 +1,35 @@
 import { Request, Response, NextFunction } from 'express';
-import { JWTService } from '../../services/auth/jwtService';
-import { JWTPayload } from '../../types';
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: JWTPayload;
-    }
-  }
-}
-
-const jwtService = new JWTService();
+import { getResources } from '../../lib/initialization';
 
 /**
- * API Authentication Middleware
- * 
- * This middleware handles authentication for protected API routes by:
- * 1. Extracting the JWT token from the request cookies
- * 2. Decrypting and validating the token using the JWT_SECRET from .env
- * 3. If valid, attaches the user information to the request and allows it to proceed
- * 4. If invalid or expired, rejects the request with appropriate error responses
- * 
- * The middleware also validates the client ID and refreshes tokens when needed.
+ * Middleware to validate API requests using JWT tokens
+ * Optimized for serverless environment with resource reuse
  */
-export const validateApiRequest = (
+export function validateApiRequest(
   req: Request,
   res: Response,
   next: NextFunction
-): void => {
+): void {
   try {
-    console.log('Validating API request...');
-
-    // Validate client ID
-    const clientId = req.headers['x-client-id'];
-    if (!clientId || clientId !== process.env.EXPECTED_CLIENT_ID) {
-      res.status(403).json({ error: 'Invalid client ID' });
-      return;
-    }
-
-    // Get JWT from Authorization header
+    console.log('Validating API request');
+    // Get JWT token from Authorization header (Bearer token)
     const authHeader = req.headers.authorization;
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      res.status(401).json({ error: 'Bearer token required' });
+      console.log('Authorization header missing or invalid format');
+      res.status(401).json({ error: 'Unauthorized: Missing or invalid token' });
       return;
     }
 
-    // Extract the token from the Authorization header
     const token = authHeader.split(' ')[1];
-    if (!token) {
-      res.status(401).json({ error: 'Invalid Bearer token format' });
+
+    // Initialize resources if not already initialized
+    const resources = getResources();
+    const jwtService = resources.jwtService;
+
+    if (!jwtService) {
+      console.error('JWT service not initialized');
+      res.status(500).json({ error: 'Server error: Authentication service unavailable' });
       return;
     }
 
@@ -56,16 +37,27 @@ export const validateApiRequest = (
       // Verify JWT token
       const payload = jwtService.verifyToken(token);
 
-      // Attach user info to request
-      req.user = payload;
+      // Add user data to request
+      req.user = {
+        user_id: payload.user_id,
+        email: payload.email,
+        sessionId: payload.sessionId,  // Include sessionId from payload
+        subscription_tier: payload.subscription_tier
+      };
+
+      // Check if token needs refresh (handled by client)
+      const refreshedToken = jwtService.refreshTokenIfNeeded(token);
+      if (refreshedToken) {
+        res.setHeader('X-New-Token', refreshedToken);
+      }
 
       next();
-    } catch (error) {
-      res.status(401).json({ error: 'Invalid or expired token' });
-      return;
+    } catch (tokenError) {
+      console.error('Token validation failed:', tokenError);
+      res.status(401).json({ error: 'Unauthorized: Invalid token' });
     }
   } catch (error) {
-    console.error('API auth error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Authentication error:', error);
+    res.status(500).json({ error: 'Server error during authentication' });
   }
-}; 
+} 
