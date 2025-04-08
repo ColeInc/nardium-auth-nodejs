@@ -2,7 +2,7 @@ import { VercelRequest, VercelResponse } from '@vercel/node';
 import serverless from 'serverless-http';
 import app from '../src/app';
 import { env } from '../src/utils/env';
-import { initializeResources } from '../src/lib/initialization';
+import { initializeResources, isHealthCheckPath } from '../src/lib/initialization';
 
 // Pre-initialize on module load - this happens once per instance
 // and will be reused for subsequent invocations on the same instance
@@ -33,8 +33,22 @@ const handler = serverless(app, {
 // Export the handler function for Vercel
 export default async function (req: VercelRequest, res: VercelResponse): Promise<any> {
     try {
+        const requestPath = req.url || '';
+        console.log(`Processing request for path: ${requestPath}`);
+
+        // For health checks, respond immediately without waiting for full initialization
+        if (isHealthCheckPath(requestPath)) {
+            console.log('Health check detected, expediting response');
+            const healthcheck = {
+                uptime: process.uptime(),
+                message: 'OK',
+                timestamp: Date.now()
+            };
+            return res.status(200).json(healthcheck);
+        }
+
         // Ensure resources are initialized before handling request
-        await initializeResources();
+        await initializeResources(requestPath);
         return await handler(req, res);
     } catch (error) {
         console.error('Serverless handler error:', error);

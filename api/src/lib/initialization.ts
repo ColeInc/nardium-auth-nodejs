@@ -21,6 +21,8 @@ interface Resources {
 
 // Track initialization state
 let isInitialized = false;
+let isInitializing = false;
+let initPromise: Promise<Resources> | null = null;
 
 // Resource container
 const resources: Resources = {
@@ -99,9 +101,22 @@ export function getSupabaseAdmin(): SupabaseClient {
 }
 
 /**
+ * Check if the request path is for health check
+ */
+export function isHealthCheckPath(path: string): boolean {
+    return path === '/api/health' || path === '/health';
+}
+
+/**
  * Initialize all resources, reusing existing ones if available
  */
-export async function initializeResources(): Promise<Resources> {
+export async function initializeResources(requestPath?: string): Promise<Resources> {
+    // Skip full initialization for health check requests
+    if (requestPath && isHealthCheckPath(requestPath)) {
+        console.log('Health check request detected, skipping full initialization');
+        return resources;
+    }
+
     // Special case for development mode
     if (process.env.NODE_ENV !== 'production') {
         console.log('Development mode: Initializing resources once...');
@@ -115,32 +130,46 @@ export async function initializeResources(): Promise<Resources> {
         return resources;
     }
 
-    console.log('Initializing resources...');
-
-    try {
-        // Initialize encryption service first (needed by other services)
-        resources.encryptionService = new EncryptionService();
-
-        // Use singleton Supabase clients
-        resources.supabase = getSupabaseClient();
-        resources.supabaseAdmin = getSupabaseAdminClient();
-        resources.stripeClient = createStripeClient();
-
-        // Initialize services (in dependency order)
-        resources.jwtService = new JWTService();
-        resources.tokenService = new TokenService();
-        resources.googleAuthService = new GoogleAuthService(resources.encryptionService);
-        resources.supabaseAuthService = new SupabaseAuthService(resources.encryptionService);
-
-        // Mark as initialized
-        isInitialized = true;
-        console.log('Resources initialized successfully');
-
-        return resources;
-    } catch (error) {
-        console.error('Failed to initialize resources:', error);
-        throw error;
+    // If initialization is in progress, wait for it
+    if (isInitializing && initPromise) {
+        console.log('Resources initialization in progress, waiting...');
+        return initPromise;
     }
+
+    console.log('Initializing resources...');
+    isInitializing = true;
+
+    // Create a promise for the initialization
+    initPromise = new Promise<Resources>(async (resolve, reject) => {
+        try {
+            // Initialize encryption service first (needed by other services)
+            resources.encryptionService = new EncryptionService();
+
+            // Use singleton Supabase clients
+            resources.supabase = getSupabaseClient();
+            resources.supabaseAdmin = getSupabaseAdminClient();
+            resources.stripeClient = createStripeClient();
+
+            // Initialize services (in dependency order)
+            resources.jwtService = new JWTService();
+            resources.tokenService = new TokenService();
+            resources.googleAuthService = new GoogleAuthService(resources.encryptionService);
+            resources.supabaseAuthService = new SupabaseAuthService(resources.encryptionService);
+
+            // Mark as initialized
+            isInitialized = true;
+            isInitializing = false;
+            console.log('Resources initialized successfully');
+
+            resolve(resources);
+        } catch (error) {
+            isInitializing = false;
+            console.error('Failed to initialize resources:', error);
+            reject(error);
+        }
+    });
+
+    return initPromise;
 }
 
 /**
@@ -158,9 +187,9 @@ export function getResources(): Resources {
  * Get initialized resources or initialize them if needed
  * Use this when you're not sure if initialization has happened
  */
-export async function getOrInitResources(): Promise<Resources> {
+export async function getOrInitResources(requestPath?: string): Promise<Resources> {
     if (!isInitialized) {
-        return initializeResources();
+        return initializeResources(requestPath);
     }
     return resources;
 } 
