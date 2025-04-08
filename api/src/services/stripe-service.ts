@@ -152,8 +152,10 @@ export const handleStripeWebhook = async (signature: string, payload: Buffer): P
             // Handle payment success
             case 'invoice.payment_succeeded': {
                 const invoice = event.data.object as Stripe.Invoice;
-                if (invoice.subscription) {
-                    const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+                // Access subscription ID from raw event data to avoid TypeScript errors
+                const rawInvoiceObject = event.data.object as any;
+                if (rawInvoiceObject.subscription) {
+                    const subscription = await stripe.subscriptions.retrieve(rawInvoiceObject.subscription);
                     await handleSuccessfulPayment(invoice, subscription);
                 }
                 break;
@@ -162,7 +164,9 @@ export const handleStripeWebhook = async (signature: string, payload: Buffer): P
             // Handle payment failures
             case 'invoice.payment_failed': {
                 const invoice = event.data.object as Stripe.Invoice;
-                await handleFailedPayment(invoice);
+                // Access invoice data safely
+                const rawInvoiceObject = event.data.object as any;
+                await handleFailedPayment(invoice, rawInvoiceObject);
                 break;
             }
 
@@ -268,7 +272,10 @@ const handleSuccessfulPayment = async (
 /**
  * Handles failed payments
  */
-const handleFailedPayment = async (invoice: Stripe.Invoice): Promise<void> => {
+const handleFailedPayment = async (
+    invoice: Stripe.Invoice,
+    rawInvoice: any
+): Promise<void> => {
     try {
         const customerId = invoice.customer as string;
 
@@ -287,6 +294,12 @@ const handleFailedPayment = async (invoice: Stripe.Invoice): Promise<void> => {
         const userEmail = users[0].email;
 
         console.log(`Payment failed for user ${userId} (${userEmail}). Invoice: ${invoice.id}`);
+
+        // If this is for a subscription, we might want to record that information
+        if (rawInvoice.subscription) {
+            console.log(`Failed payment was for subscription: ${rawInvoice.subscription}`);
+            // Optionally handle subscription-specific logic here
+        }
 
         // You could send a notification to the user about the failed payment
         // Or implement automatic downgrade after multiple failures
