@@ -13,6 +13,12 @@ initializeResources().catch(err => {
 // Log the environment just once per instance
 console.log(`Serverless function initialized in ${env.NODE_ENV} mode`);
 
+// Log incoming request details
+const logRequestDetails = (req: VercelRequest) => {
+    console.log(`Incoming request: ${req.method} ${req.url}`);
+    console.log(`Request headers: ${JSON.stringify(req.headers)}`);
+};
+
 // Create a serverless handler from the Express app
 const handler = serverless(app, {
     request: (req: any) => {
