@@ -2,12 +2,14 @@
   "dependencies": {
     "google-auth-library": "^9.15.1",
     "googleapis": "^146.0.0",
-    "micro": "^10.0.1"
+    "micro": "^10.0.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/axios": "^0.9.36",
     "@types/cookie-parser": "^1.4.8",
     "@types/csurf": "^1.11.5",
-    "@types/express-session": "^1.18.1"
+    "@types/express-session": "^1.18.1",
+    "@types/uuid": "^10.0.0"
   }
 }

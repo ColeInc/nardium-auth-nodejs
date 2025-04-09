@@ -21,4 +21,4 @@ router.get('/google/callback', (req: Request, res: Response) => {
 router.get('/google/refresh-token', validateApiRequest, googleAuthController.refreshAccessToken);
 router.get('/logout', validateApiRequest, googleAuthController.logout);
 
-export default router; 
+export default router;
