@@ -2,12 +2,14 @@
   "name": "nardium-auth-nodejs",
   "version": "1.0.0",
   "description": "Node.js authentication backend for Nardium Google Docs Outline Tool",
-  "main": "dist/server.js",
+  "main": "dist/index.js",
   "scripts": {
     "start": "NODE_ENV=production node dist/index.js",
-    "dev": "NODE_ENV=development ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "vercel dev",
+    "dev:debug": "NODE_OPTIONS='--inspect' vercel dev",
+    "setup": "node scripts/setup-vercel-dev.js",
     "build": "tsc",
-    "vercel-build": "tsc",
+    "vercel-build": "tsc -p tsconfig.vercel.json",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -44,6 +46,7 @@
     "@types/node": "^20.10.4",
     "@vercel/node": "^5.1.14",
     "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3"
+    "typescript": "^5.3.3",
+    "vercel": "^31.4.0"
   }
 }

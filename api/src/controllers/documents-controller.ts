@@ -1,12 +1,17 @@
 import { Request, Response } from 'express';
 import { DocumentService } from '../document-service';
 
+// Adding a utility function to safely access user data regardless of request type
+function getUserId(req: Request | any): string | undefined {
+  return req.user?.user_id;
+}
+
 export class DocumentsController {
-  static async checkDocumentAccess(req: Request, res: Response) {
+  static async checkDocumentAccess(req: Request | any, res: Response) {
     console.log(`Starting checkDocumentAccess for document: ${req.body.documentId}`);
     try {
       const { documentId } = req.body;
-      const userId = req.user?.user_id;
+      const userId = getUserId(req);
 
       if (!userId || !documentId) {
         console.log(`checkDocumentAccess failed: Missing required fields for document: ${documentId}`);
@@ -52,9 +57,9 @@ export class DocumentsController {
     }
   }
 
-  static async getUserDocuments(req: Request, res: Response) {
+  static async getUserDocuments(req: Request | any, res: Response) {
     try {
-      const userId = req.user?.user_id;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
@@ -67,9 +72,9 @@ export class DocumentsController {
     }
   }
 
-  static async getUserStatus(req: Request, res: Response) {
+  static async getUserStatus(req: Request | any, res: Response) {
     try {
-      const userId = req.user?.user_id;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }
@@ -82,9 +87,9 @@ export class DocumentsController {
     }
   }
 
-  static async upgradeUser(req: Request, res: Response) {
+  static async upgradeUser(req: Request | any, res: Response) {
     try {
-      const userId = req.user?.user_id;
+      const userId = getUserId(req);
       if (!userId) {
         return res.status(400).json({ error: 'User ID is required' });
       }

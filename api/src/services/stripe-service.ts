@@ -170,6 +170,11 @@ export const handleStripeWebhook = async (signature: string, payload: Buffer): P
                 break;
             }
 
+            case 'payment_intent.succeeded': {
+                console.log("bing bong triggered payment_intent.succeeded!");
+                break;
+            }
+
             default:
                 console.log(`Unhandled event type: ${event.type}`);
         }

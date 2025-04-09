@@ -1,0 +1,10 @@
+.env
+node_modules
+.git
+README.md
+MIGRATION.md
+SERVERLESS_MIGRATION.md
+SERVERLESS_SUMMARY.md
+AUTHENTICATION_FLOW.md
+.DS_Store
+*.log 

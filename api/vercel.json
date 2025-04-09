@@ -6,19 +6,37 @@
       "use": "@vercel/node",
       "config": {
         "memory": 1024,
-        "maxDuration": 20
+        "maxDuration": 60,
+        "tsconfig": "tsconfig.vercel.json"
+      }
+    },
+    {
+      "src": "api/webhooks/stripe.ts",
+      "use": "@vercel/node",
+      "config": {
+        "memory": 1024,
+        "maxDuration": 10,
+        "tsconfig": "tsconfig.vercel.json"
       }
     }
   ],
   "routes": [
     {
+      "src": "/api/stripe/webhook",
+      "dest": "api/webhooks/stripe.ts",
+      "methods": ["POST"]
+    },
+    {
       "src": "/api/health",
-      "dest": "/functions/index.ts",
+      "dest": "functions/index.ts",
       "methods": ["GET"]
     },
     {
-      "src": "/(.*)",
-      "dest": "/functions/index.ts"
+      "src": "/api/(.*)",
+      "dest": "functions/index.ts"
     }
-  ]
+  ],
+  "dev": {
+    "port": 3000
+  }
 } 

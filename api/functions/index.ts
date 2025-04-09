@@ -24,7 +24,13 @@ const handler = serverless(app, {
     request: (req: any) => {
         // Record request start time for logging
         req._startTime = Date.now();
-        console.log(`Request started: ${req.method} ${req.url}`);
+        console.log(`Request started: ${req.method} ${req.url || req.path}`);
+
+        // Ensure req has the right structure for our middleware and controllers
+        if (!req.user) {
+            req.user = undefined; // Initialize to prevent TypeScript errors
+        }
+
         return req;
     },
     response: (res: any) => {
@@ -37,7 +43,7 @@ const handler = serverless(app, {
 });
 
 // Export the handler function for Vercel
-export default async function (req: VercelRequest, res: VercelResponse): Promise<any> {
+export default async function (req: VercelRequest, res: VercelResponse) {
     try {
         const requestPath = req.url || '';
         console.log(`Processing request for path: ${requestPath}`);
@@ -50,7 +56,15 @@ export default async function (req: VercelRequest, res: VercelResponse): Promise
                 message: 'OK',
                 timestamp: Date.now()
             };
-            return res.status(200).json(healthcheck);
+            res.status(200).json(healthcheck);
+            return;
+        }
+
+        // For Stripe webhook requests, we handle it in a separate dedicated function
+        if (requestPath === '/api/stripe/webhook') {
+            console.log('Stripe webhook request detected, but should be handled by dedicated function');
+            res.status(404).json({ error: 'Webhook endpoint moved to dedicated function' });
+            return;
         }
 
         // Ensure resources are initialized before handling request

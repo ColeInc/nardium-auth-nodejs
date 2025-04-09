@@ -1,17 +1,21 @@
 import app from './src/app';
 import { env } from './src/utils/env';
+import { initializeResources } from './src/lib/initialization';
 
-// Dual-mode execution setup
-if (env.NODE_ENV === 'production') {
-  // In production, log that we're running in serverless mode
-  console.log('Running in production mode (serverless)');
-} else {
-  // In development, start the Express server
-  console.log('Running in development mode (local server)');
+// Initialize resources on startup
+initializeResources().catch(err => {
+  console.error('Failed to initialize resources:', err);
+});
+
+// Use the same handler logic for both development and production
+console.log(`Running in ${env.NODE_ENV} mode`);
+
+if (env.NODE_ENV !== 'production') {
+  // In development with vercel dev, this will still be used
   app.listen(env.PORT, () => {
     console.log(`Server running on port ${env.PORT}`);
   });
 }
 
-// Export the app for both development and production
+// Export the app for serverless use
 export default app; 

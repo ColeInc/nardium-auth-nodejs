@@ -6,7 +6,7 @@ import { getResources } from '../../lib/initialization';
  * Optimized for serverless environment with resource reuse
  */
 export function validateApiRequest(
-  req: Request,
+  req: Request | any, // Using any to accommodate both Express.Request and VercelRequest
   res: Response,
   next: NextFunction
 ): void {

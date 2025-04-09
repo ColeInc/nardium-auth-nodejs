@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "types": ["@vercel/node", "node"],
+    "noImplicitAny": false,
+    "strictNullChecks": false
+  },
+  "include": ["src/**/*", "functions/**/*", "index.ts"]
+} 
