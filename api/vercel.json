@@ -24,7 +24,11 @@
     {
       "src": "/api/stripe/webhook",
       "dest": "api/webhooks/stripe.ts",
-      "methods": ["POST"]
+      "methods": ["POST"],
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST"
+      }
     },
     {
       "src": "/api/health",

@@ -67,38 +67,23 @@ export const stripeController = {
 
             // For debugging
             console.log(`Webhook received with signature: ${signature.substring(0, 10)}...`);
-            console.log(`Headers: ${JSON.stringify(req.headers)}`);
 
-            // Log if the body is a buffer or already parsed
-            if (Buffer.isBuffer(req.body)) {
-                console.log('Request body is a Buffer (as expected)');
-            } else {
-                console.log(`Request body is already parsed: ${typeof req.body}`);
-                console.log(`Body preview: ${JSON.stringify(req.body).substring(0, 100)}...`);
+            // Get raw request body
+            // req.body should be a Buffer when using express.raw middleware
+            const rawBody = req.body;
+
+            if (!Buffer.isBuffer(rawBody)) {
+                console.error('Request body is not a buffer! This will cause signature verification to fail.');
+                console.log(`Body type received: ${typeof rawBody}`);
+                return res.status(400).json({ error: 'Invalid request format, expected buffer' });
             }
 
-            console.log('Validating webhook signature and processing event');
+            console.log(`Raw buffer received with length: ${rawBody.length}`);
 
-            // Get event type safely regardless of body format
-            let eventType = 'unknown';
-            if (typeof req.body === 'object' && req.body !== null && !Buffer.isBuffer(req.body)) {
-                eventType = req.body.type || 'unknown';
-            } else if (Buffer.isBuffer(req.body)) {
-                try {
-                    const parsedBody = JSON.parse(req.body.toString());
-                    eventType = parsedBody.type || 'unknown';
-                } catch (e) {
-                    console.error('Failed to parse webhook body', e);
-                }
-            }
-
-            console.log(`Processing webhook event type: ${eventType}`);
-
-            // Pass the raw buffer to the webhook handler
-            const rawBody = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body));
+            // Pass the raw buffer directly to the webhook handler - DON'T transform it
             await handleStripeWebhook(signature, rawBody);
 
-            console.log(`Successfully processed webhook event: ${eventType}`);
+            console.log(`Successfully processed webhook event`);
 
             // Respond to Stripe with a success status
             return res.status(200).json({ received: true });

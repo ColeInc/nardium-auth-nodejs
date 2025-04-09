@@ -3,6 +3,7 @@ import authRoutes from './auth';
 import documentsRoutes from './documents';
 import paymentsRoutes from './payments';
 import healthRoutes from './health';
+import express from 'express';
 
 const router = Router();
 
@@ -13,6 +14,19 @@ console.log('Initializing API routes with modular structure...');
 router.use((req, res, next) => {
   console.log(`Route accessed: ${req.method} ${req.path}`);
   next();
+});
+
+// Apply JSON parsing middleware globally EXCEPT for webhook paths
+router.use((req, res, next) => {
+  // Skip body parsing for webhook routes - IMPORTANT for signature verification
+  if (req.path.includes('/payments/webhook') ||
+    req.path.includes('/stripe/webhook') ||
+    req.path.includes('/webhooks/stripe')) {
+    return next();
+  }
+
+  // Apply JSON parsing for all other routes
+  express.json()(req, res, next);
 });
 
 // Mount modular routes

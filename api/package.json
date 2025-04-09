@@ -33,6 +33,7 @@
     "googleapis": "^148.0.0",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "micro": "^10.0.1",
     "serverless-http": "^3.2.0",
     "stripe": "^18.0.0",
     "uuid": "^9.0.1"

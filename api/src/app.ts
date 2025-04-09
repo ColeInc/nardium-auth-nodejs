@@ -13,6 +13,22 @@ const app: Express = express();
 // Security middleware configuration
 app.use(helmet());
 
+// Set up a middleware specifically for Stripe webhook endpoints
+// This must come BEFORE any other middleware that parses the body
+app.use((req, res, next) => {
+  // Only use raw parser for Stripe webhook endpoints
+  if (req.originalUrl === '/api/payments/webhook' ||
+    req.originalUrl === '/api/stripe/webhook') {
+    // Use express.raw with no transformations for Stripe webhook endpoints
+    express.raw({
+      type: 'application/json',
+      limit: '10mb' // Allow larger payloads
+    })(req, res, next);
+  } else {
+    next();
+  }
+});
+
 // Body parser middleware is handled in routes/index.ts
 // to properly handle Stripe webhooks that need raw body data
 

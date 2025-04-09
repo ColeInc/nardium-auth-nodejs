@@ -1,6 +1,6 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import { handleStripeWebhook } from '../../src/services/stripe-service';
-import { Buffer } from 'buffer';
+import { buffer } from 'micro';
 import dotenv from 'dotenv';
 
 // Load environment variables
@@ -13,6 +13,14 @@ dotenv.config();
  * - Minimal middleware overhead
  * - Fast response time
  */
+
+// Disable body parsing for this endpoint
+export const config = {
+    api: {
+        bodyParser: false,
+    },
+};
+
 export default async function stripeWebhookHandler(
     req: VercelRequest,
     res: VercelResponse
@@ -37,36 +45,14 @@ export default async function stripeWebhookHandler(
 
         console.log(`Webhook received with signature: ${signature.substring(0, 10)}...`);
 
-        // Get raw request body
-        const rawBody = req.body;
-        let buffer: Buffer;
+        // Get raw request body as buffer using micro
+        const buf = await buffer(req);
 
-        // Ensure we have the body as a Buffer
-        if (Buffer.isBuffer(rawBody)) {
-            buffer = rawBody;
-            console.log('Request body is already a buffer');
-        } else if (typeof rawBody === 'string') {
-            buffer = Buffer.from(rawBody);
-            console.log('Request body is a string, converted to buffer');
-        } else if (rawBody && typeof rawBody === 'object') {
-            buffer = Buffer.from(JSON.stringify(rawBody));
-            console.log('Request body is an object, converted to buffer');
-        } else {
-            console.log('Invalid request body format');
-            res.status(400).json({ error: 'Invalid request body format' });
-            return;
-        }
+        // Log request details for debugging (don't parse or transform the payload)
+        console.log(`Received raw buffer of length: ${buf.length}`);
 
-        // Try to parse the body to log the event type
-        try {
-            const parsedBody = JSON.parse(buffer.toString());
-            console.log(`Processing webhook event type: ${parsedBody.type || 'unknown'}`);
-        } catch (e) {
-            console.log('Could not parse webhook body for logging');
-        }
-
-        // Process the webhook
-        await handleStripeWebhook(signature, buffer);
+        // Process the webhook with raw buffer - IMPORTANT: don't transform the buffer in any way
+        await handleStripeWebhook(signature, buf);
 
         // Return success immediately
         res.status(200).json({ received: true });
