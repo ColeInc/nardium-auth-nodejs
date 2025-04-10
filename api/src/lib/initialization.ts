@@ -177,9 +177,18 @@ export async function initializeResources(requestPath?: string): Promise<Resourc
  * Use this when you're sure initialization has happened
  */
 export function getResources(): Resources {
+    console.log('[getResources] Called, initialization state:', isInitialized);
     if (!isInitialized) {
+        console.error('[getResources] ERROR: Resources accessed before initialization');
         throw new Error('Resources accessed before initialization');
     }
+
+    // Log which resources are available
+    const availableResources = Object.entries(resources)
+        .map(([key, value]) => `${key}: ${value !== null}`)
+        .join(', ');
+    console.log(`[getResources] Available resources: ${availableResources}`);
+
     return resources;
 }
 
@@ -188,8 +197,14 @@ export function getResources(): Resources {
  * Use this when you're not sure if initialization has happened
  */
 export async function getOrInitResources(requestPath?: string): Promise<Resources> {
+    console.log('[getOrInitResources] Called with requestPath:', requestPath || 'none');
+    console.log('[getOrInitResources] Current state - initialized:', isInitialized, 'initializing:', isInitializing);
+
     if (!isInitialized) {
+        console.log('[getOrInitResources] Resources not initialized, starting initialization');
         return initializeResources(requestPath);
     }
+
+    console.log('[getOrInitResources] Resources already initialized, returning existing resources');
     return resources;
 } 

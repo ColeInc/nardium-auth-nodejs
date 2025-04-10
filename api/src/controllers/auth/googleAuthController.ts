@@ -91,42 +91,56 @@ export const googleAuthController = {
    */
   refreshAccessToken: async (req: any, res: Response): Promise<void> => {
     try {
-      console.log('Starting access token refresh process');
-      console.log('Request headers:', req.headers);
+      console.log('[refreshAccessToken] START: Beginning access token refresh process');
+      console.log('[refreshAccessToken] Request path:', req.path);
+      console.log('[refreshAccessToken] Request headers:', JSON.stringify(req.headers));
 
       // Get user ID from JWT token (which was set in auth_token cookie)
       const userId = req.user?.user_id;
-      console.log('User ID from request:', userId);
+      console.log('[refreshAccessToken] User ID from request:', userId);
 
       if (!userId) {
-        console.log('Error: No user ID found in request');
+        console.log('[refreshAccessToken] Error: No user ID found in request');
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
 
       // Get services
+      console.log('[refreshAccessToken] Getting resources...');
       const resources = await getOrInitResources();
-      const { tokenService, googleAuthService } = resources;
+      console.log('[refreshAccessToken] Resources initialized');
 
-      console.log(`Fetching refresh token for user ${userId}`);
+      const { tokenService, googleAuthService } = resources;
+      console.log('[refreshAccessToken] Token service available:', !!tokenService);
+      console.log('[refreshAccessToken] Google auth service available:', !!googleAuthService);
+
+      if (!tokenService || !googleAuthService) {
+        console.error('[refreshAccessToken] Required services not available');
+        res.status(500).json({ error: 'Server error: Services not initialized' });
+        return;
+      }
+
+      console.log(`[refreshAccessToken] Fetching refresh token for user ${userId}`);
       // Get the stored refresh token for this user
-      const refreshToken = await tokenService!.getRefreshToken(userId);
-      console.log('Refresh token retrieved:', refreshToken ? 'Found' : 'Not found');
+      const refreshToken = await tokenService.getRefreshToken(userId);
+      console.log('[refreshAccessToken] Refresh token retrieved:', refreshToken ? 'Found (length: ' + refreshToken.length + ')' : 'Not found');
 
       if (!refreshToken) {
-        console.log(`Error: No refresh token found for user ${userId}`);
+        console.log(`[refreshAccessToken] Error: No refresh token found for user ${userId}`);
         res.status(401).json({ error: 'No refresh token found' });
         return;
       }
 
-      console.log('Requesting new access token from Google');
+      console.log('[refreshAccessToken] Requesting new access token from Google');
       // Use the refresh token to get a new access token from Google
-      const newTokens = await googleAuthService!.refreshAccessToken(refreshToken);
-      console.log('New tokens received:', newTokens ? 'Success' : 'Failed');
+      const newTokens = await googleAuthService.refreshAccessToken(refreshToken);
+      console.log('[refreshAccessToken] New tokens received:', newTokens ? 'Success' : 'Failed');
+      console.log('[refreshAccessToken] Access token length:', newTokens.access_token?.length || 0);
 
-      console.log('Successfully obtained new access token');
+      console.log('[refreshAccessToken] Successfully obtained new access token');
 
       const expiryTime = new Date(Date.now() + (newTokens.expires_in * 1000));
+      console.log('[refreshAccessToken] Token expiry time:', expiryTime.toISOString());
 
       const response: AccessToken = {
         success: true,
@@ -137,10 +151,11 @@ export const googleAuthController = {
         userId: req.user?.user_id
       };
 
+      console.log('[refreshAccessToken] END: Sending successful response');
       res.json(response);
 
     } catch (error) {
-      console.error('Access token refresh error:', error);
+      console.error('[refreshAccessToken] Access token refresh error:', error);
       res.status(500).json({ error: 'Failed to refresh access token' });
     }
   },

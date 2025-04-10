@@ -92,9 +92,7 @@ export class GoogleAuthService {
     });
 
     try {
-      // UNCOMMENT DIS
-      // UNCOMMENT DIS
-      // UNCOMMENT DIS
+      console.log('Making OAuth token request to Google API');
       const response = await axios.post<AuthResponse>(url, params.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -102,7 +100,7 @@ export class GoogleAuthService {
       });
 
       // Add hardcoded refresh token to the response
-      response.data.refresh_token = '1//0gkCfe1XIMpNcCgYIARAAGBASNwF-L9Irz8IR3fHHHeuKmkjAqf9d1tVso5PFX_7iaKMdXdZ_ioo1OsBR7TuSgxPbcRHVkBdRBsM';
+      // response.data.refresh_token = '1//0gkCfe1XIMpNcCgYIARAAGBASNwF-L9Irz8IR3fHHHeuKmkjAqf9d1tVso5PFX_7iaKMdXdZ_ioo1OsBR7TuSgxPbcRHVkBdRBsM';
 
       // hardcoded resp for time being
       // const response = {
@@ -137,59 +135,108 @@ export class GoogleAuthService {
     const url = 'https://oauth2.googleapis.com/token';
 
     try {
-      console.log('Starting token renewal process');
+      console.log('[renewAccessToken] START: Beginning token renewal process');
+      console.log('[renewAccessToken] Refresh token length:', encryptedRefreshToken?.length || 0);
 
       // Parse the JSON string into EncryptedToken
-      console.log('Attempting to decrypt refresh token');
-      console.log('Encrypted token:', encryptedRefreshToken);
-      // const encryptedToken: EncryptedToken = JSON.parse(encryptedRefreshToken);
+      console.log('[renewAccessToken] Attempting to decrypt refresh token');
+      let decryptionSuccessful = false;
+      let refreshTokenToUse = encryptedRefreshToken;
 
-      // // Create decipher with parsed components
-      // const decipher = crypto.createDecipheriv(
-      //   this.algorithm,
-      //   this.encryptionKey,
-      //   Buffer.from(encryptedToken.iv, 'hex')
-      // );
+      console.log('[renewAccessToken] Checking if token is JSON-parseable (encrypted)');
+      try {
+        // Try to parse as JSON
+        const parsedToken = JSON.parse(encryptedRefreshToken);
+        console.log('[renewAccessToken] Token is in JSON format:', !!parsedToken);
 
-      // decipher.setAuthTag(Buffer.from(encryptedToken.authTag, 'hex'));
+        if (parsedToken.iv && parsedToken.encrypted && parsedToken.authTag) {
+          console.log('[renewAccessToken] Token appears to be encrypted, attempting decryption');
+          try {
+            // Create decipher with parsed components
+            const decipher = crypto.createDecipheriv(
+              this.algorithm,
+              this.encryptionKey,
+              Buffer.from(parsedToken.iv, 'hex')
+            );
 
-      // let decryptedRefreshToken = decipher.update(
-      //   encryptedToken.encrypted,
-      //   'hex',
-      //   'utf8'
-      // );
-      // decryptedRefreshToken += decipher.final('utf8');
+            decipher.setAuthTag(Buffer.from(parsedToken.authTag, 'hex'));
 
-      // console.log('Successfully decrypted refresh token');
+            let decryptedRefreshToken = decipher.update(
+              parsedToken.encrypted,
+              'hex',
+              'utf8'
+            );
+            decryptedRefreshToken += decipher.final('utf8');
 
-      console.log('Preparing request to Google OAuth endpoint');
+            console.log('[renewAccessToken] Decryption successful, decrypted token length:', decryptedRefreshToken.length);
+            refreshTokenToUse = decryptedRefreshToken;
+            decryptionSuccessful = true;
+          } catch (decryptError) {
+            console.error('[renewAccessToken] Decryption error:', decryptError);
+          }
+        }
+      } catch (parseError) {
+        console.log('[renewAccessToken] Token is not in JSON format, using as-is');
+      }
+
+      if (!decryptionSuccessful) {
+        console.log('[renewAccessToken] Using token as-is (not encrypted or decryption failed)');
+      }
+
+      console.log('[renewAccessToken] Preparing request to Google OAuth endpoint');
       const params = new URLSearchParams({
         client_id: googleConfig.clientId,
         client_secret: googleConfig.clientSecret,
         grant_type: 'refresh_token',
-        // refresh_token: decryptedRefreshToken
-        refresh_token: encryptedRefreshToken
+        refresh_token: refreshTokenToUse
       });
 
-      console.log('Making request to Google OAuth endpoint');
+      console.log('[renewAccessToken] Making request to Google OAuth endpoint with:');
+      console.log('[renewAccessToken] - client_id:', googleConfig.clientId);
+      console.log('[renewAccessToken] - grant_type: refresh_token');
+      console.log('[renewAccessToken] - token (first 10 chars):', refreshTokenToUse.substring(0, 10) + '...');
+
+      console.log('[renewAccessToken] Sending request to:', url);
       const response = await axios.post<AuthResponse>(url, params.toString(), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
+      }).catch(error => {
+        console.error('[renewAccessToken] Axios error details:', error.message);
+        if (error.response) {
+          console.error('[renewAccessToken] Error response status:', error.response.status);
+          console.error('[renewAccessToken] Error response data:', error.response.data);
+        }
+        throw error;
       });
-      console.log('Received response from Google OAuth endpoint');
 
+      console.log('[renewAccessToken] Received response from Google OAuth endpoint');
+      console.log('[renewAccessToken] Response status:', response.status);
+      console.log('[renewAccessToken] Access token received (length):', response.data.access_token?.length || 0);
+      console.log('[renewAccessToken] Token type:', response.data.token_type);
+      console.log('[renewAccessToken] Expires in:', response.data.expires_in);
+
+      console.log('[renewAccessToken] END: Token renewal process completed successfully');
       return response.data;
     } catch (error) {
-      console.error('OAuth API Call Error:', error);
+      console.error('[renewAccessToken] ERROR: OAuth API Call Error:', error);
       throw new Error(`Failed to refresh access token: ${error}`);
     }
   }
 
   // Alias for backward compatibility
   async refreshAccessToken(refreshToken: string): Promise<AuthResponse> {
-    console.log('refreshAccessToken called, delegating to renewAccessToken');
-    return this.renewAccessToken(refreshToken);
+    console.log('[refreshAccessToken] Called, delegating to renewAccessToken');
+    console.log('[refreshAccessToken] Input token (length):', refreshToken?.length || 0);
+
+    try {
+      const result = await this.renewAccessToken(refreshToken);
+      console.log('[refreshAccessToken] Successfully renewed token');
+      return result;
+    } catch (error) {
+      console.error('[refreshAccessToken] Error renewing token:', error);
+      throw error;
+    }
   }
 
   async verifyAndGetUserInfo(idToken: string): Promise<UserInfo> {

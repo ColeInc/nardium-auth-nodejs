@@ -13,12 +13,22 @@ const app: Express = express();
 // Security middleware configuration
 app.use(helmet());
 
+// Set up a middleware to log all requests at the Express app level
+app.use((req, res, next) => {
+  console.log(`Express app - Request received: ${req.method} ${req.originalUrl} (path: ${req.path})`);
+  next();
+});
+
 // Set up a middleware specifically for Stripe webhook endpoints
 // This must come BEFORE any other middleware that parses the body
 app.use((req, res, next) => {
   // Only use raw parser for Stripe webhook endpoints
+  // Note: In serverless mode, originalUrl might not include /api prefix, so check both versions
   if (req.originalUrl === '/api/payments/webhook' ||
-    req.originalUrl === '/api/stripe/webhook') {
+    req.originalUrl === '/payments/webhook' ||
+    req.originalUrl === '/api/stripe/webhook' ||
+    req.originalUrl === '/stripe/webhook') {
+    console.log('Express app - Using raw body parser for webhook path:', req.originalUrl);
     // Use express.raw with no transformations for Stripe webhook endpoints
     express.raw({
       type: 'application/json',
@@ -37,7 +47,7 @@ app.use(cookieParser());
 
 // CORS configuration
 app.use(cors({
-  origin: process.env.CHROME_EXTENSION_URL,
+  origin: [process.env.CHROME_EXTENSION_URL],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Client-Version', 'X-Client-ID', 'X-CSRF-Token', 'Stripe-Signature'],
@@ -81,8 +91,10 @@ app.use(limiter);
 // CSRF protection
 // app.use(csrf({ cookie: true }));
 
-// Routes
-app.use('/api', router);
+// Routes - IMPORTANT: In serverless mode with our URL rewriting, we mount the router at the root path
+// The /api prefix is already stripped by the serverless handler
+console.log('Express app - Mounting API routes');
+app.use('/', router);
 
 // Add startup logging
 console.log(`Server configured and ready to start`);

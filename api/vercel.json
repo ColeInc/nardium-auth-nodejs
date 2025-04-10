@@ -31,6 +31,19 @@
       }
     },
     {
+      "src": "/api/auth/google/callback",
+      "dest": "functions/index.ts"
+    },
+    {
+      "src": "/api/auth/google/refresh-token",
+      "dest": "functions/index.ts",
+      "methods": ["GET", "OPTIONS"]
+    },
+    {
+      "src": "/api/auth/(.*)",
+      "dest": "functions/index.ts"
+    },
+    {
       "src": "/api/health",
       "dest": "functions/index.ts",
       "methods": ["GET"]
