@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "start": "NODE_ENV=production node dist/index.js",
-    "dev": "vercel dev",
-    "dev:debug": "NODE_OPTIONS='--inspect' vercel dev",
+    "dev": "NODE_ENV=development vercel dev",
+    "dev:debug": "NODE_ENV=development NODE_OPTIONS='--inspect' vercel dev",
     "setup": "node scripts/setup-vercel-dev.js",
     "build": "tsc",
     "vercel-build": "tsc -p tsconfig.vercel.json",

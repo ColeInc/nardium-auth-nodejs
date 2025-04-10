@@ -24,29 +24,16 @@
     {
       "src": "/api/stripe/webhook",
       "dest": "api/webhooks/stripe.ts",
-      "methods": ["POST"],
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST"
-      }
-    },
-    {
-      "src": "/api/auth/google/callback",
-      "dest": "functions/index.ts"
-    },
-    {
-      "src": "/api/auth/google/refresh-token",
-      "dest": "functions/index.ts",
-      "methods": ["GET", "OPTIONS"]
-    },
-    {
-      "src": "/api/auth/(.*)",
-      "dest": "functions/index.ts"
+      "methods": [
+        "POST"
+      ]
     },
     {
       "src": "/api/health",
       "dest": "functions/index.ts",
-      "methods": ["GET"]
+      "methods": [
+        "GET"
+      ]
     },
     {
       "src": "/api/(.*)",
@@ -56,4 +43,4 @@
   "dev": {
     "port": 3000
   }
-} 
+}

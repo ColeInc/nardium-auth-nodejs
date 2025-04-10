@@ -16,114 +16,146 @@ console.log(`Serverless function initialized in ${env.NODE_ENV} mode`);
 // Create a serverless handler from the Express app
 const handler = serverless(app, {
     request: (req: any) => {
+        console.log("OG REQ original request coming in:", req)
+
         // Record request start time for logging
         req._startTime = Date.now();
 
-        // This fixes the path issue in development and production
-        // Extract the actual path from x-forwarded-prefix or x-original-url headers
-        const originalUrl = req.headers?.['x-original-url']
-            || req.headers?.['x-forwarded-prefix']
-            || '';
+        // CRITICAL: Preserve original request details before any modifications
+        req._originalUrl = req.url;
+        req._originalHeaders = { ...req.headers };
+        console.log("original url and headers:", req._originalHeaders, req._originalUrl)
 
-        console.log('Headers for URL identification:', {
-            url: req.url,
-            originalUrl: req.originalUrl,
-            'x-original-url': req.headers?.['x-original-url'],
-            'x-forwarded-prefix': req.headers?.['x-forwarded-prefix'],
-            'x-vercel-deployment-url': req.headers?.['x-vercel-deployment-url'],
+        // Add detailed logging of query parameters
+        console.log("Request query parameters:", req.query);
+        console.log("Request URL object:", req.url);
+        console.log("Request path:", req.path);
+        console.log("Request method:", req.method);
+        console.log("Request body available:", !!req.body);
+
+        // Check for special cases (Stripe webhooks) - don't modify these at all
+        if (req.url?.includes('/payments/webhook') || req.url?.includes('/stripe/webhook')) {
+            console.log('Webhook detected - preserving raw request');
+            return req;
+        }
+
+        // The problem: Vercel dev environment doesn't properly forward Authorization headers
+        // Fix: Check for auth headers in various places and reconstruct if needed
+        if (!req.headers.authorization) {
+            // Try to locate authorization header from x-headers or other places
+            const authHeader =
+                req.headers['x-authorization'] ||
+                req.headers['x-forwarded-authorization'] ||
+                req._originalHeaders?.authorization;
+
+            if (authHeader) {
+                console.log('Found authorization header in alternate location, restoring it');
+                req.headers.authorization = authHeader;
+            }
+        }
+
+        // Log headers for debugging
+        console.log('Request headers after processing:', {
+            authorization: req.headers.authorization ? 'Bearer <token>' : 'missing',
+            'content-type': req.headers['content-type'],
+            host: req.headers.host,
+            origin: req.headers.origin
         });
 
-        // Special handling for Vercel development environment
-        if (env.NODE_ENV === 'development') {
-            // In Vercel dev, we need to recover the original URL from Vercel's routing
-            const originalPath = req.headers['x-vercel-original-path'] || req.headers['x-original-url'] || req.url;
-            console.log(`Original path from headers: ${originalPath}`);
-
-            // Re-check forwarded headers to find the real path
-            const forwardedHost = req.headers['x-forwarded-host'];
-            const forwardedProto = req.headers['x-forwarded-proto'];
-            const forwardedPort = req.headers['x-forwarded-port'];
-
-            console.log(`Forwarded info: host=${forwardedHost}, proto=${forwardedProto}, port=${forwardedPort}`);
-
-            // Check the referrer which might include the original path
+        // Special handling for dev mode path resolution
+        if (env.NODE_ENV === 'development' && req.url === '/' && req.method === 'GET') {
+            // Attempt to recover the path from headers or query
             const referer = req.headers.referer;
-            console.log(`Referer: ${referer}`);
-
-            // Try to recover from URL pattern
-            if (req.url === '/' && req.headers.origin?.includes('chrome-extension')) {
-                // This is likely a CORS preflight or request from the Chrome extension
-                if (req.method === 'OPTIONS') {
-                    console.log('CORS preflight detected');
-                } else {
-                    // Try to determine the correct path for extension requests
-                    // Based on the request headers and patterns
-                    if (req.headers['access-control-request-method'] === 'GET') {
-                        const pathPattern = req.headers.origin.includes('kdmdhielhebecglcnejeakebepepiogf')
-                            ? '/auth/google/refresh-token'  // Match to your extension ID pattern
-                            : '/auth/google/callback';
-
-                        console.log(`Recovered path ${pathPattern} from Chrome extension pattern`);
-                        req.url = pathPattern;
-                    }
+            if (referer && referer.includes('/api/auth/')) {
+                const match = referer.match(/\/api\/auth\/[^?#]+/);
+                if (match) {
+                    console.log(`Recovered auth path from referer: ${match[0]}`);
+                    // Remove /api prefix as it's added back in the Express router mounting
+                    req.url = match[0].replace(/^\/api/, '');
                 }
             }
         }
 
-        // Log the modified request URL
-        console.log(`Serverless handler - Final request path: ${req.method} ${req.url}`);
+        // Log the final request URL and path
+        console.log(`Serverless handler - Final request: ${req.method} ${req.url}`);
+        console.log("final req going back:", req)
         return req;
-    },
-    response: (res: any) => {
-        // Log request completion time
-        const startTime = res.req._startTime || Date.now();
-        const duration = Date.now() - startTime;
-        console.log(`Serverless handler - Request completed in ${duration}ms: ${res.statusCode}`);
-        return res;
     }
 });
 
 // Export the handler function for Vercel
 export default async function (req: VercelRequest, res: VercelResponse) {
     try {
-        // Log the original request
-        console.log(`Serverless entry point - Original request: ${req.method} ${req.url}`);
+        console.log("og og req req", req)
+        // Log the request
+        console.log(`Serverless entry point - Request: ${req.method} ${req.url}`);
 
-        // Store the original URL for debugging
-        const originalUrl = req.url;
+        // DIRECT FORCED CORS HEADERS - Immediately set them
+        res.setHeader('X-Fun-Test', 'peekaboo');
+        res.setHeader('Access-Control-Allow-Origin', 'chrome-extension://kdmdhielhebecglcnejeakebepepiogf');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Requested-With,X-Client-Version,X-Client-ID,X-CSRF-Token,Stripe-Signature,X-Authorization,X-Forwarded-Authorization,X-Fun-Text');
 
-        // For health checks, respond immediately without waiting for full initialization
-        if (isHealthCheckPath(req.url || '')) {
-            console.log('Health check detected, expediting response');
-            const healthcheck = {
-                uptime: process.uptime(),
-                message: 'OK',
-                timestamp: Date.now()
-            };
-            res.status(200).json(healthcheck);
+        // For preflight requests, immediately return 204 success
+        if (req.method === 'OPTIONS') {
+            console.log('CORS preflight request detected, sending 204 response');
+            res.status(204).end();
             return;
         }
 
-        // Extract path and parameters from actual headers for debugging
-        console.log('Request headers for path recovery:', {
-            'host': req.headers.host,
-            'x-forwarded-host': req.headers['x-forwarded-host'],
-            'x-forwarded-for': req.headers['x-forwarded-for'],
-            'x-vercel-id': req.headers['x-vercel-id'],
-            'origin': req.headers.origin,
-            'referer': req.headers.referer,
+        // Log Vercel-specific request properties
+        console.log('Vercel request query:', req.query);
+        console.log('Vercel request body available:', !!req.body);
+        console.log('Vercel request cookies:', req.cookies);
+        console.log('Vercel request URL structure:', {
+            url: req.url,
+            baseUrl: (req as any).baseUrl,
+            originalUrl: (req as any).originalUrl,
+            path: (req as any).path
         });
 
-        // For all other requests, ensure resources are initialized
+        // Special case - health check
+        if (isHealthCheckPath(req.url || '')) {
+            console.log('Health check detected, expediting response');
+            res.status(200).json({
+                uptime: process.uptime(),
+                message: 'OK',
+                timestamp: Date.now()
+            });
+            return;
+        }
+
+        // Special case - Stripe webhook
+        // Directly pass to the dedicated handler without any processing
+        if (req.url?.includes('/stripe/webhook') || req.url?.includes('/payments/webhook')) {
+            console.log('Stripe webhook detected, preserving raw body');
+            // Set a flag on the request to indicate this is a webhook
+            (req as any)._isWebhook = true;
+        }
+
+        // Critical for auth: Preserve Authorization header
+        if (req.headers.authorization) {
+            // Debugging to verify the header is present
+            console.log('Authorization header found in original request');
+
+            // Add it to custom headers that might be preserved better
+            req.headers['x-authorization'] = req.headers.authorization;
+            // req.headers['x-forwarded-authorization'] = req.headers.authorization;
+        }
+
+        // Initialize resources for non-webhook requests
         await initializeResources();
 
-        // Pass request to the Express handler
-        console.log('Passing request to Express app handler');
+        // Hand off to the serverless handler
+        console.log('Passing request to Express handler');
+        // Use our custom response interception
         return await handler(req, res);
     } catch (error) {
         console.error('Serverless handler error:', error);
-
-        // Provide graceful error response
+        // Even for errors, make sure CORS headers are set
+        res.setHeader('Access-Control-Allow-Origin', 'chrome-extension://kdmdhielhebecglcnejeakebepepiogf');
+        res.setHeader('Access-Control-Allow-Credentials', 'true');
         res.status(500).json({
             error: 'Server error',
             request_id: req.headers['x-vercel-id'] || 'unknown'

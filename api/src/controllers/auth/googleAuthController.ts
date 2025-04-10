@@ -17,10 +17,62 @@ export const googleAuthController = {
   ): Promise<void> => {
     try {
       console.log('Starting Google OAuth callback handling');
-      const code = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
+      console.log('REQUEST OBJECT:', {
+        query: req.query,
+        headers: {
+          ...req.headers,
+          authorization: req.headers.authorization ? 'Bearer <token>' : 'none'
+        },
+        url: req.url,
+        method: req.method,
+        path: req.path,
+        originalUrl: req.originalUrl,
+        // Raw request properties that might help diagnose Vercel-specific issues
+        rawVercelProps: {
+          body: !!req.body,
+          params: req.params,
+          // Check for Vercel-specific properties
+          vercelProps: (req as any)._vercel || 'none'
+        }
+      });
+
+      // Try to get code from multiple possible locations
+      let code: string | undefined;
+
+      if (req.query && req.query.code) {
+        // Standard way - from query params
+        code = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
+        console.log('Found code in req.query.code:', !!code);
+      } else if ((req as any).rawQuery) {
+        // Try Vercel-specific raw query string
+        const rawQuery = (req as any).rawQuery;
+        console.log('No code in req.query, trying rawQuery:', rawQuery);
+        const params = new URLSearchParams(rawQuery);
+        code = params.get('code') || undefined;
+      } else if (req.url && req.url.includes('code=')) {
+        // Try parsing from URL if query object is missing but URL has code
+        console.log('No query object, trying to parse from URL:', req.url);
+        const urlObj = new URL(req.url, 'http://localhost');
+        code = urlObj.searchParams.get('code') || undefined;
+      } else if ((req as any)._originalUrl && (req as any)._originalUrl.includes('code=')) {
+        // Try parsing from _originalUrl set by serverless handler
+        console.log('Trying to parse from _originalUrl:', (req as any)._originalUrl);
+        const urlStr = (req as any)._originalUrl;
+        const queryStart = urlStr.indexOf('?');
+        if (queryStart > -1) {
+          const queryStr = urlStr.substring(queryStart + 1);
+          const params = new URLSearchParams(queryStr);
+          code = params.get('code') || undefined;
+        }
+      }
 
       if (!code || typeof code !== 'string') {
         console.log('Error: No authorization code provided or invalid format');
+        console.log('Request details for debugging:', {
+          url: req.url,
+          query: req.query,
+          headers: Object.keys(req.headers)
+        });
         res.status(400).json({ error: 'Authorization code is required' });
         return;
       }

@@ -100,7 +100,7 @@ export class GoogleAuthService {
       });
 
       // Add hardcoded refresh token to the response
-      // response.data.refresh_token = '1//0gkCfe1XIMpNcCgYIARAAGBASNwF-L9Irz8IR3fHHHeuKmkjAqf9d1tVso5PFX_7iaKMdXdZ_ioo1OsBR7TuSgxPbcRHVkBdRBsM';
+      response.data.refresh_token = '1//0gkCfe1XIMpNcCgYIARAAGBASNwF-L9Irz8IR3fHHHeuKmkjAqf9d1tVso5PFX_7iaKMdXdZ_ioo1OsBR7TuSgxPbcRHVkBdRBsM';
 
       // hardcoded resp for time being
       // const response = {
